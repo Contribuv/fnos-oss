@@ -466,6 +466,20 @@ curl -sI "https://s3.example.com:7755/demo-bucket/uploads/avatar/avatar.jpg?X-Am
 3. URL 复制过程中有没有被加空格、被 HTML 转义成 `&amp;`？
 4. 对象键里的中文/空格有没有被二次编码？
 
+Lucky 3.x 的具体配置（默认会把 Host 的端口去掉）：
+
+1. 子规则操作模式切到「定制模式」；
+2. 确认「使用目标地址 Host 请求头」为关闭；
+3. 「高级设置 → 自定义配置」填：
+
+```nginx
+proxy_set_header Host $http_host;
+```
+
+或在「HTTP 后端请求头」新增 `Host` = `$http_host`。
+
+4. 调试时临时加 `add_header X-Debug-Host $http_host always;`，用 `curl -sI` 确认响应头是 `域名:端口`，确认后删除。保存后重启该 Web 服务规则。
+
 **Q2：链接生成后能用，第二天全 403**
 
 签名 URL 过期了。不要存 URL，存对象键，每次用时现签。

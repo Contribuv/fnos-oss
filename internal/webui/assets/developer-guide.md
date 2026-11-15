@@ -319,7 +319,40 @@ img.src = url;
 - 数据库只保存对象键，不保存签名 URL；
 - 批量列表一次签完，不要每张图单独请求。
 
-### 13.3 注意事项
+### 13.3 Lucky 反向代理的 Host 设置
+
+Lucky 默认会把 Host 的端口去掉再转发，导致预签名链接返回 `SignatureDoesNotMatch`。必须显式传递 Host：
+
+1. 子规则操作模式切到「定制模式」。
+2. 确认「使用目标地址 Host 请求头」处于关闭状态（开启后 Host 会变成后端地址）。
+3. 在「高级设置」里任选一种方式：
+
+自定义配置：
+
+```nginx
+proxy_set_header Host $http_host;
+```
+
+或在「HTTP 后端请求头」新增一条：
+
+| 名称 | 值 |
+| --- | --- |
+| `Host` | `$http_host` |
+
+4. 调试时可临时加一行，确认实际转发的 Host：
+
+```nginx
+add_header X-Debug-Host $http_host always;
+```
+
+```bash
+curl -sI "https://s3.example.com:7755/demo-bucket/uploads/a.jpg" | grep -i x-debug-host
+# X-Debug-Host: s3.example.com:7755
+```
+
+确认后删除该调试头。保存配置后关闭再打开 Web 服务规则，并重新生成预签名链接。
+
+### 13.4 注意事项
 
 1. `endpoint` 必须与浏览器地址完全一致，包括端口；反向代理必须保留原始 Host（含端口）。
 2. SDK 必须开启 path-style（`forcePathStyle` / `addressing_style: path` / `use_path_style_endpoint`）。
@@ -328,7 +361,7 @@ img.src = url;
 5. 签名 URL 在有效期内等同公开，谁拿到都能访问；用户级权限必须在业务后端判断。
 6. 签名 URL 绑定 host、路径和查询参数，任何字符改动都会 `SignatureDoesNotMatch`。
 
-### 13.4 验收
+### 13.5 验收
 
 ```bash
 # 私有桶裸链接：403

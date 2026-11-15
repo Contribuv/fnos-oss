@@ -1,5 +1,5 @@
 appname=fnos-oss
-version=1.0.2
+version=1.0.3
 display_name=轻量对象存储
 desc=轻量、私有部署的 S3 兼容对象存储。支持存储桶、访问密钥、分段上传、分享链接与公共读策略，管理端通过飞牛统一网关访问。
 platform=x86
@@ -16,4 +16,4 @@ ctl_stop=true
 service_port=9100
 checkport=false
 disable_authorization_path=false
-changelog=修复管理端分享链接与长文本横向溢出；新增私有桶预签名 URL 网页对接说明（使用文档与开发者文档）；补充长路径、错误提示的换行处理。
+changelog=新增侧边栏「开发文档」入口；使用文档更名为开发文档；补充 Lucky 反向代理 Host 传递与调试头配置；Nginx 示例改用 $http_host 保留端口。

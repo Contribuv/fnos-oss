@@ -210,9 +210,12 @@
     const nav2 = [
       ["network", "网络与安全", "shield"],
       ["settings", "设置", "settings"],
+      ["docs", "开发文档", "book"],
     ];
     const item = ([r, label, ic]) =>
-      `<a class="nav-item" href="#/${r}" data-nav="${r}">${icon(ic)}<span>${label}</span></a>`;
+      r === "docs"
+        ? `<button class="nav-item" data-act="help" data-nav="docs">${icon(ic)}<span>${label}</span></button>`
+        : `<a class="nav-item" href="#/${r}" data-nav="${r}">${icon(ic)}<span>${label}</span></a>`;
     app.innerHTML = `
       <div class="nav-scrim" data-act="nav-close" aria-hidden="true"></div>
       <aside class="sidebar" id="sidebar">
@@ -244,7 +247,7 @@
           </div>
           <div class="top-actions">
             <button class="icon-btn" data-act="theme" title="切换外观">${icon("moon")}</button>
-            <button class="icon-btn" data-act="help" title="帮助与文档">${icon("book")}</button>
+            <button class="icon-btn" data-act="help" title="开发文档">${icon("book")}</button>
             <div class="user-chip">
               <div class="avatar">${esc(initial)}</div>
               <div class="user-meta"><b>${esc(name)}</b><span>${s.devMode ? "开发模式" : "飞牛管理员"}</span></div>
@@ -1121,13 +1124,20 @@ print(s3.list_buckets()["Buckets"])`)}`,
 
     location / {
         proxy_pass http://127.0.0.1:${port};
-        proxy_set_header Host $host;
+        # $http_host 保留端口；$host 会丢掉非 443 端口，导致预签名链接失效
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_read_timeout 3600s;
     }
 }`)}
           <h5>Lucky</h5>
-          <p>新建 Web 服务：前端填 <code class="mono">https://s3.example.com</code> 与证书，后端填 <code class="mono">http://127.0.0.1:${port}</code>，保留原始路径与 Host，调大请求体上限和超时。</p>
+          <p>新建 Web 服务：前端填 <code class="mono">https://s3.example.com</code> 与证书，后端填 <code class="mono">http://127.0.0.1:${port}</code>，调大请求体上限和超时。<b>Host 必须保留端口</b>，否则预签名链接会返回 <code class="mono">SignatureDoesNotMatch</code>。</p>
+          <p>子规则操作模式切到「定制模式」，在「高级设置」里任选一种方式传递 Host：</p>
+          <ul class="docs-list">
+            <li><b>自定义配置</b>：填 <code class="mono">proxy_set_header Host $http_host;</code></li>
+            <li><b>HTTP 后端请求头</b>：新增 Header，名称 <code class="mono">Host</code>，值 <code class="mono">$http_host</code></li>
+          </ul>
+          <p>同时确认「使用目标地址 Host 请求头」处于关闭状态（开启后 Host 会变成后端地址）。调试时可在自定义配置里临时加一行 <code class="mono">add_header X-Debug-Host $http_host always;</code>，用 <code class="mono">curl -sI</code> 检查响应头出现 <code class="mono">X-Debug-Host: 域名:端口</code> 后再删除。</p>
           <p>完成后在“设置 → 网络”填写 <code class="mono">https://s3.example.com</code>，页面展示与分享链接会自动切换。管理端始终从飞牛桌面进入，不要通过反向代理暴露。</p>`,
       },
       {
@@ -1223,7 +1233,7 @@ const url = await getSignedUrl(
     ];
     modal(`
       <div class="modal-head">
-        <div><h3>使用文档</h3><p>连接、安全、备份与排错的完整说明${(state.session || {}).version ? ` · v${esc(state.session.version)}` : ""}</p></div>
+        <div><h3>开发文档</h3><p>连接、安全、反向代理、私有桶与排错的完整说明${(state.session || {}).version ? ` · v${esc(state.session.version)}` : ""}</p></div>
       </div>
       <div class="modal-body docs-body">
         <div class="docs-layout">

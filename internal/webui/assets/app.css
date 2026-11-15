@@ -104,6 +104,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px;
   color: var(--rail-text); cursor: pointer; border: 0; background: none; text-align: left;
   font-size: 13.5px; transition: background .15s ease, color .15s ease; position: relative;
+  width: 100%;
 }
 .nav-item svg { width: 17px; height: 17px; flex: none; opacity: .9; }
 .nav-item:hover { background: rgba(255, 255, 255, .05); color: var(--rail-text-strong); }
