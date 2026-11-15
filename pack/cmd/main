@@ -1,0 +1,158 @@
+#!/bin/bash
+# fnOS object storage runtime control.
+set -u
+
+BIN="${TRIM_APPDEST}/fnososs"
+CFG="${TRIM_PKGETC}/oss.json"
+VAR="${TRIM_PKGVAR}"
+PID="${VAR}/app.pid"
+LOG="${VAR}/app.log"
+SOCK="${TRIM_APPDEST}/app.sock"
+DATA="${VAR}/data"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "${LOG}" 2>/dev/null
+}
+
+fail() {
+    echo "$1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null
+    log_msg "ERROR: $1"
+    return 1
+}
+
+valid_port() {
+    case "${1:-}" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    [ "$1" -ge 1024 ] && [ "$1" -le 65535 ]
+}
+
+running() {
+    if [ -r "${PID}" ]; then
+        local pid
+        pid=$(head -n 1 "${PID}" | tr -d '[:space:]')
+        if [ -n "${pid}" ] && kill -0 "${pid}" 2>/dev/null; then
+            return 0
+        fi
+        rm -f "${PID}"
+    fi
+    return 1
+}
+
+write_config() {
+    local port="$1" tmp
+    tmp="${CFG}.tmp"
+    mkdir -p "${TRIM_PKGETC}" "${DATA}" 2>/dev/null || return 1
+    cat > "${tmp}" <<EOF
+{
+  "listen_host": "0.0.0.0",
+  "port": ${port},
+  "socket_path": "${SOCK}",
+  "gateway_prefix": "/app/fnos-oss",
+  "data_dir": "${DATA}",
+  "region": "us-east-1",
+  "log_level": "info"
+}
+EOF
+    mv -f "${tmp}" "${CFG}"
+}
+
+start_process() {
+    if running; then
+        return 0
+    fi
+    if ! mkdir -p "${DATA}" 2>/dev/null; then
+        fail "无法创建数据目录 ${DATA}，请检查应用数据卷权限。"
+        return 1
+    fi
+
+    if [ ! -f "${BIN}" ]; then
+        fail "应用文件缺失：${BIN}，请重新安装轻量对象存储。"
+        return 1
+    fi
+    chmod +x "${BIN}" 2>/dev/null || true
+    if [ ! -x "${BIN}" ]; then
+        fail "应用文件不可执行：${BIN}"
+        return 1
+    fi
+
+    if [ ! -f "${CFG}" ]; then
+        local port="${wizard_port:-9100}"
+        valid_port "${port}" || port=9100
+        if ! write_config "${port}"; then
+            fail "无法写入配置文件 ${CFG}。"
+            return 1
+        fi
+    fi
+
+    if [ -f "${LOG}" ] && [ "$(wc -c < "${LOG}" 2>/dev/null || echo 0)" -gt 5242880 ]; then
+        tail -c 1048576 "${LOG}" > "${LOG}.tmp" 2>/dev/null && mv -f "${LOG}.tmp" "${LOG}"
+    fi
+
+    log_msg "starting ${BIN}"
+    OSS_SOCKET="${SOCK}" OSS_DATA_DIR="${DATA}" "${BIN}" --config "${CFG}" >> "${LOG}" 2>&1 &
+    echo $! > "${PID}"
+
+    local count=0
+    while [ "${count}" -lt 5 ] && ! running; do
+        sleep 1
+        count=$((count + 1))
+    done
+    if ! running; then
+        rm -f "${PID}"
+        fail "轻量对象存储启动失败，请查看日志 ${LOG}。常见原因：端口被占用或数据目录不可写。"
+        return 1
+    fi
+    log_msg "started pid $(cat "${PID}")"
+    return 0
+}
+
+stop_process() {
+    if ! running; then
+        # The pid file can be lost after a crash or a system reboot while the old
+        # process still holds the port. Match the binary path as a fallback, or an
+        # upgrade silently keeps the previous version running and the console
+        # keeps reporting the old version number.
+        pkill -f "${BIN}" 2>/dev/null || true
+        rm -f "${SOCK}"
+        return 0
+    fi
+    local pid count=0
+    pid=$(cat "${PID}" | tr -d '[:space:]')
+    log_msg "stopping pid ${pid}"
+    kill -TERM "${pid}" 2>/dev/null || true
+    while kill -0 "${pid}" 2>/dev/null && [ "${count}" -lt 10 ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+    if kill -0 "${pid}" 2>/dev/null; then
+        log_msg "killing pid ${pid}"
+        kill -KILL "${pid}" 2>/dev/null || true
+        sleep 1
+    fi
+    rm -f "${PID}" "${SOCK}"
+    return 0
+}
+
+case "${1:-}" in
+    start)
+        start_process
+        ;;
+    stop)
+        stop_process
+        ;;
+    restart)
+        stop_process
+        start_process
+        ;;
+    status)
+        if running; then
+            exit 0
+        fi
+        exit 3
+        ;;
+    *)
+        echo "usage: $0 {start|stop|restart|status}" >&2
+        exit 1
+        ;;
+esac

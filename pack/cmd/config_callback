@@ -1,0 +1,46 @@
+#!/bin/bash
+# Persist the new port and restart the service so the change takes effect
+# immediately, without requiring the user to stop/start the app manually.
+set -u
+
+CMD_DIR=$(cd "$(dirname "$0")" && pwd)
+PORT="${wizard_port:-}"
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "${TRIM_PKGVAR}/app.log" 2>/dev/null
+}
+
+valid_port() {
+    case "${1:-}" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    [ "$1" -ge 1024 ] && [ "$1" -le 65535 ]
+}
+
+if ! valid_port "${PORT}"; then
+    echo "S3 端口无效：${PORT}。请填写 1024-65535 之间的端口。" > "${TRIM_TEMP_LOGFILE:-/dev/null}"
+    exit 1
+fi
+
+TMP="${TRIM_PKGETC}/oss.json.tmp"
+cat > "${TMP}" <<EOF
+{
+  "listen_host": "0.0.0.0",
+  "port": ${PORT},
+  "socket_path": "${TRIM_APPDEST}/app.sock",
+  "gateway_prefix": "/app/fnos-oss",
+  "data_dir": "${TRIM_PKGVAR}/data",
+  "region": "us-east-1",
+  "log_level": "info"
+}
+EOF
+mv -f "${TMP}" "${TRIM_PKGETC}/oss.json"
+log "config updated: S3 port ${PORT}"
+
+bash "${CMD_DIR}/main" stop >/dev/null 2>&1 || true
+sleep 1
+if ! bash "${CMD_DIR}/main" start; then
+    echo "端口 ${PORT} 保存成功，但服务启动失败。请确认端口未被占用，或换一个端口后重试。" > "${TRIM_TEMP_LOGFILE:-/dev/null}"
+    exit 1
+fi
+exit 0

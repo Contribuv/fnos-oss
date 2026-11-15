@@ -1,0 +1,6 @@
+#!/bin/bash
+# Clean up runtime leftovers. Object data stays in the app data volume so an
+# accidental uninstall does not silently destroy user objects.
+set -u
+rm -f "${TRIM_APPDEST}/app.sock" "${TRIM_PKGVAR}/app.pid" 2>/dev/null || true
+exit 0

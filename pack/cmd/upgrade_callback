@@ -1,0 +1,7 @@
+#!/bin/bash
+# Restart after an upgrade. The existing oss.json keeps the user's port.
+set -u
+CMD_DIR=$(cd "$(dirname "$0")" && pwd)
+chmod +x "${TRIM_APPDEST}/fnososs" 2>/dev/null || true
+bash "${CMD_DIR}/main" start >/dev/null 2>&1 || true
+exit 0

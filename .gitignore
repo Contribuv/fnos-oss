@@ -1,0 +1,13 @@
+# 构建产物
+dist/
+*.fpk
+
+# 第三方构建工具（请自行从官网下载 fnpack）
+tools/fnpack.exe
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

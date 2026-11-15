@@ -1,0 +1,6 @@
+#!/bin/bash
+# Stop the service before uninstalling.
+set -u
+CMD_DIR=$(cd "$(dirname "$0")" && pwd)
+bash "${CMD_DIR}/main" stop >/dev/null 2>&1 || true
+exit 0

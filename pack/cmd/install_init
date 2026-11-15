@@ -1,0 +1,4 @@
+#!/bin/bash
+# Nothing to prepare before installation.
+set -u
+exit 0

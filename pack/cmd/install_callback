@@ -1,0 +1,49 @@
+#!/bin/bash
+# Runs after the package files are installed. Writes the initial oss.json
+# using the port collected by wizard/install.
+set -u
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "${TRIM_PKGVAR}/app.log" 2>/dev/null
+}
+
+valid_port() {
+    case "${1:-}" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    [ "$1" -ge 1024 ] && [ "$1" -le 65535 ]
+}
+
+PORT="${wizard_port:-9100}"
+if ! valid_port "${PORT}"; then
+    echo "S3 端口无效：${PORT}。请在应用设置中填写 1024-65535 之间的端口。" > "${TRIM_TEMP_LOGFILE:-/dev/null}"
+    log "invalid wizard_port=${PORT}"
+    exit 1
+fi
+
+mkdir -p "${TRIM_PKGETC}" "${TRIM_PKGVAR}/data" || {
+    echo "无法创建应用目录，请检查存储空间权限。" > "${TRIM_TEMP_LOGFILE:-/dev/null}"
+    exit 1
+}
+
+chmod +x "${TRIM_APPDEST}/fnososs" 2>/dev/null || true
+
+cat > "${TRIM_PKGETC}/oss.json.tmp" <<EOF
+{
+  "listen_host": "0.0.0.0",
+  "port": ${PORT},
+  "socket_path": "${TRIM_APPDEST}/app.sock",
+  "gateway_prefix": "/app/fnos-oss",
+  "data_dir": "${TRIM_PKGVAR}/data",
+  "region": "us-east-1",
+  "log_level": "info"
+}
+EOF
+mv -f "${TRIM_PKGETC}/oss.json.tmp" "${TRIM_PKGETC}/oss.json"
+
+if [ -n "${TRIM_USERNAME:-}" ] && [ -n "${TRIM_GROUPNAME:-}" ]; then
+    chown -R "${TRIM_USERNAME}:${TRIM_GROUPNAME}" "${TRIM_PKGETC}" "${TRIM_PKGVAR}" 2>/dev/null || true
+fi
+
+log "installed with S3 port ${PORT}"
+exit 0

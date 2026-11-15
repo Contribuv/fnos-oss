@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>轻量对象存储</title>
+  <base href="/app/fnos-oss/">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/app.css?v=24">
+  <script>
+	// 该应用本来只是用于我自己的博客。
+    // 既然做了，那就直接上架飞牛nas应用商店，大家一起捣鼓，我开源了！
+    // 需要预览，可以访问我的博客 https://www.infowe.site/ 目前博客文章中的图，都是用飞牛nas+该应用进行托管！
+    (function () {
+      try {
+        var pref = localStorage.getItem("fnos-oss-theme");
+        var theme = pref === "light" || pref === "dark" ? pref : "";
+        if (!theme) {
+          try {
+            var style = getComputedStyle(parent.document.documentElement);
+            var bg = style.getPropertyValue("--semi-color-bg-0") || style.getPropertyValue("--semi-color-bg-1");
+            var m = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(bg || "");
+            if (m) {
+              theme = (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) < 128 ? "dark" : "light";
+            } else if (parent.localStorage.getItem("fnos-theme-mode") === "30") {
+              theme = "dark";
+            }
+          } catch (e) { /* cross-origin parent */ }
+          if (!theme) theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch (e) { /* keep the stylesheet default */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="boot" class="boot">
+    <div class="boot-mark">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="31" cy="31" r="14" fill="none" stroke="currentColor" stroke-width="6"/>
+        <rect x="32.25" y="32.25" width="16.5" height="16.5" rx="5.5" style="fill:var(--bg)"/>
+        <rect x="34" y="34" width="13" height="13" rx="4" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="boot-text">正在连接轻量对象存储…</div>
+  </div>
+  <div id="app" class="app" hidden></div>
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <noscript><div class="noscript">管理端需要启用 JavaScript。</div></noscript>
+  <script src="assets/app.js?v=24"></script>
+</body>
+</html>
