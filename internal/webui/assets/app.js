@@ -1131,6 +1131,35 @@ print(s3.list_buckets()["Buckets"])`)}`,
           <p>完成后在“设置 → 网络”填写 <code class="mono">https://s3.example.com</code>，页面展示与分享链接会自动切换。管理端始终从飞牛桌面进入，不要通过反向代理暴露。</p>`,
       },
       {
+        id: "private",
+        title: "私有桶与网页显示",
+        body: `
+          <h4>私有桶如何在网页中显示</h4>
+          <p>桶策略改为 <code class="mono">private</code> 后，裸链接返回 <code class="mono">403 AccessDenied</code>，网页必须使用后端签发的预签名 URL。签名在业务后端本地计算，不会额外访问 NAS。</p>
+          <h5>1. 管理端临时验证</h5>
+          <p>存储桶 → 文件 → “分享链接”会生成 1 小时有效的签名 URL。该接口需要飞牛管理员登录态，不能直接暴露给网页访客。</p>
+          <h5>2. 业务后端签发</h5>
+          ${code(`// Node.js + @aws-sdk/client-s3 + @aws-sdk/s3-request-presigner
+const s3 = new S3Client({
+  region: "us-east-1",
+  endpoint: "https://s3.example.com:7755",
+  forcePathStyle: true,
+  credentials: { accessKeyId: AK, secretAccessKey: SK },
+});
+
+const url = await getSignedUrl(
+  s3,
+  new GetObjectCommand({ Bucket: "demo-bucket", Key: key }),
+  { expiresIn: 600 }
+);`)}
+          <h5>3. 前端使用</h5>
+          <p>向业务后端请求 <code class="mono">url</code>，拿到后直接赋给 <code class="mono">img.src</code>；链接过期或加载失败时重新请求。数据库只保存对象键，不要保存签名 URL。</p>
+          <div class="callout warn" style="margin:10px 0">
+            <b>三个必查项：</b>endpoint 必须包含浏览器访问的端口；SDK 必须开启 path-style；Region 与服务端设置一致。任何一项不对都会返回 <code class="mono">SignatureDoesNotMatch</code>。
+          </div>
+          <p>有效期范围为 1 秒 ~ 7 天，页面展示建议 5~15 分钟；Secret Key 只能保存在服务端。Node / Python / Go / PHP 完整示例、错误码与验收命令见“下载开发者文档”。</p>`,
+      },
+      {
         id: "data",
         title: "数据与备份",
         body: `
@@ -1406,7 +1435,7 @@ print(s3.list_buckets()["Buckets"])`)}`,
       mask.querySelector(".modal-body").innerHTML = `
         <div class="field">
           <label>下载链接（1 小时有效）</label>
-          <div class="copy-field"><code>${esc(data.url)}</code><button class="btn btn-sm" data-act="copy" data-copy="${esc(data.url)}">${icon("copy")}复制</button></div>
+          <div class="copy-field"><code title="${esc(data.url)}">${esc(data.url)}</code><button class="btn btn-sm" data-act="copy" data-copy="${esc(data.url)}">${icon("copy")}复制</button></div>
           <div class="help">链接由当前启用的 Access Key 签名。对象删除或密钥停用后链接立即失效。</div>
         </div>
         <div class="divider"></div>

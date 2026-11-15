@@ -225,3 +225,125 @@ go test ./...
 - **签名错误**：确认客户端使用 SigV4、path-style、正确的 Region 与系统时间。
 - **修改端口后客户端连不上**：客户端、反向代理和防火墙都需要同步更新。
 - **分享链接失效**：对象已删除，或签名所用密钥被停用。
+
+## 13. 私有桶与预签名 URL 网页对接
+
+桶策略为 `private` 时，裸链接返回 `403 AccessDenied`，网页必须使用后端签发的临时签名 URL。签名是本地 HMAC 计算，不需要额外请求 NAS。
+
+### 13.1 生成链接
+
+统一参数：
+
+| 项 | 值 |
+| --- | --- |
+| endpoint | 浏览器实际访问的地址，必须含端口，例如 `https://s3.example.com:7755` |
+| region | 与服务端设置一致，默认 `us-east-1` |
+| 寻址方式 | 必须 path-style |
+| 有效期 | 1 ~ 604800 秒，页面展示建议 300 ~ 900 秒 |
+
+Node.js：
+
+```js
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const s3 = new S3Client({
+  region: "us-east-1",
+  endpoint: "https://s3.example.com:7755",
+  forcePathStyle: true,
+  credentials: { accessKeyId: AK, secretAccessKey: SK },
+});
+
+const url = await getSignedUrl(
+  s3,
+  new GetObjectCommand({ Bucket: "demo-bucket", Key: key }),
+  { expiresIn: 600 }
+);
+```
+
+Python：
+
+```python
+import boto3
+from botocore.config import Config
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url="https://s3.example.com:7755",
+    aws_access_key_id=AK,
+    aws_secret_access_key=SK,
+    region_name="us-east-1",
+    config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+)
+url = s3.generate_presigned_url(
+    "get_object", Params={"Bucket": "demo-bucket", "Key": key}, ExpiresIn=600
+)
+```
+
+Go：
+
+```go
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String("https://s3.example.com:7755")
+    o.UsePathStyle = true
+})
+req, _ := s3.NewPresignClient(client).PresignGetObject(ctx,
+    &s3.GetObjectInput{Bucket: aws.String("demo-bucket"), Key: aws.String(key)},
+    s3.WithPresignExpires(10*time.Minute),
+)
+```
+
+PHP：
+
+```php
+$s3 = new Aws\S3\S3Client([
+    'version' => 'latest',
+    'region' => 'us-east-1',
+    'endpoint' => 'https://s3.example.com:7755',
+    'use_path_style_endpoint' => true,
+    'credentials' => ['key' => AK, 'secret' => SK],
+]);
+$cmd = $s3->getCommand('GetObject', ['Bucket' => 'demo-bucket', 'Key' => $key]);
+$url = (string) $s3->createPresignedRequest($cmd, '+10 minutes')->getUri();
+```
+
+### 13.2 前端使用
+
+```js
+const { url } = await fetch("/api/file-url?key=" + encodeURIComponent(key))
+  .then((r) => r.json());
+img.src = url;
+```
+
+- 链接过期或加载失败时重新请求业务后端；
+- 数据库只保存对象键，不保存签名 URL；
+- 批量列表一次签完，不要每张图单独请求。
+
+### 13.3 注意事项
+
+1. `endpoint` 必须与浏览器地址完全一致，包括端口；反向代理必须保留原始 Host（含端口）。
+2. SDK 必须开启 path-style（`forcePathStyle` / `addressing_style: path` / `use_path_style_endpoint`）。
+3. 只签 `host`，不要附加 `content-type`、`acl` 等参数。
+4. Secret Key 只能放在服务端，前端不得参与签名计算。
+5. 签名 URL 在有效期内等同公开，谁拿到都能访问；用户级权限必须在业务后端判断。
+6. 签名 URL 绑定 host、路径和查询参数，任何字符改动都会 `SignatureDoesNotMatch`。
+
+### 13.4 验收
+
+```bash
+# 私有桶裸链接：403
+curl -sI "https://s3.example.com:7755/demo-bucket/uploads/a.jpg" | head -1
+
+# 新签名链接：200
+curl -sI "https://s3.example.com:7755/demo-bucket/uploads/a.jpg?X-Amz-..." | head -1
+```
+
+错误码：
+
+| Code | 含义 |
+| --- | --- |
+| `AccessDenied` | 私有桶裸访问，或链接已过期 |
+| `SignatureDoesNotMatch` | host、路径或参数与签名不一致 |
+| `InvalidAccessKeyId` | Key 不存在或已停用 |
+| `RequestTimeTooSkewed` | 客户端与服务端时间偏差过大 |
+| `NoSuchKey` | 对象不存在 |

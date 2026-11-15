@@ -159,7 +159,7 @@ body.nav-lock { overflow: hidden; }
 .section-title .hint { color: var(--text-3); font-size: 12px; }
 .muted { color: var(--text-2); }
 .dim { color: var(--text-3); }
-.mono { font-family: var(--mono); font-size: 12px; }
+.mono { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
 .tiny { font-size: 11.5px; }
 .nowrap { white-space: nowrap; }
 .strong { font-weight: 600; }
@@ -198,7 +198,7 @@ body.nav-lock { overflow: hidden; }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent); }
 .input::placeholder, .textarea::placeholder { color: var(--text-3); }
 .textarea { min-height: 84px; resize: vertical; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
-.field { display: grid; gap: 6px; }
+.field { display: grid; gap: 6px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .field label { font-size: 12.5px; font-weight: 550; }
 .field .help { color: var(--text-3); font-size: 11.5px; }
 .form-grid { display: grid; gap: 14px; }
@@ -299,19 +299,21 @@ body.nav-lock { overflow: hidden; }
 
 /* ---------------------------------------------------------------- detail + misc */
 .kv { display: grid; gap: 0; }
-.kv .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.kv .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px dashed var(--border); min-width: 0; }
 .kv .row:last-child { border-bottom: 0; }
 .kv .k { color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; gap: 7px; }
 .kv .k svg { width: 14px; height: 14px; opacity: .6; }
 .kv .v { text-align: right; min-width: 0; font-size: 12.5px; display: flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.kv .v code, .kv .v .mono { min-width: 0; overflow-wrap: anywhere; }
 .progress { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .progress > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--primary), #6f97ff); }
 .legend { display: flex; justify-content: space-between; color: var(--text-3); font-size: 11.5px; margin-top: 8px; }
 .copy-field {
   display: flex; align-items: center; gap: 8px; background: var(--surface-2);
   border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px 7px 11px;
+  min-width: 0; max-width: 100%; overflow: hidden;
 }
-.copy-field code { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.copy-field code { font-family: var(--mono); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
 .code-block { position: relative; background: #12161e; color: #dbe3ef; border-radius: 10px; padding: 14px 16px; overflow: auto; border: 1px solid #222b38; }
 .code-block pre { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.7; white-space: pre; }
 .code-block .btn-copy { position: absolute; right: 8px; top: 8px; background: rgba(255,255,255,.08); color: #c7d1df; border-color: transparent; box-shadow: none; opacity: .8; }
@@ -320,7 +322,7 @@ body.nav-lock { overflow: hidden; }
 .tab { border: 0; background: none; padding: 6px 12px; border-radius: 7px; color: var(--text-2); font-size: 12.5px; cursor: pointer; white-space: nowrap; }
 .tab:hover { color: var(--text); }
 .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); font-weight: 550; }
-.callout { border-left: 3px solid var(--primary); background: var(--surface-2); border-radius: 0 8px 8px 0; padding: 10px 13px; color: var(--text-2); font-size: 12.5px; }
+.callout { border-left: 3px solid var(--primary); background: var(--surface-2); border-radius: 0 8px 8px 0; padding: 10px 13px; color: var(--text-2); font-size: 12.5px; overflow-wrap: anywhere; }
 .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
 .callout.ok { border-color: var(--ok); background: var(--ok-soft); }
 .steps { counter-reset: step; display: grid; gap: 10px; }
@@ -365,7 +367,7 @@ body.nav-lock { overflow: hidden; }
 .modal-head { padding: 17px 20px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .modal-head h3 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .modal-head p { margin: 4px 0 0; color: var(--text-2); font-size: 12.5px; }
-.modal-body { padding: 16px 20px; }
+.modal-body { padding: 16px 20px; min-width: 0; }
 .modal-foot { padding: 13px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--surface-2); border-radius: 0 0 14px 14px; }
 .help-body section + section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 .help-body h4 { margin: 0 0 6px; font-size: 13.5px; font-weight: 650; color: var(--text); }
@@ -415,13 +417,14 @@ body.nav-lock { overflow: hidden; }
 .docs-faq b { display: block; margin-bottom: 2px; }
 .docs-main .code-block { margin: 8px 0 2px; }
 .docs-main .code-block pre { font-size: 11.5px; }
-.docs-main code.mono { font-size: 11.5px; background: var(--surface-3); border-radius: 4px; padding: 1px 5px; }
+.docs-main code.mono { font-size: 11.5px; background: var(--surface-3); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+.help-body code, .field .help code { overflow-wrap: anywhere; }
 .toast-root { position: fixed; right: 22px; bottom: 22px; display: grid; gap: 8px; z-index: 70; }
 .toast {
   background: var(--surface); color: var(--text); border: 1px solid var(--border);
   border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,.16); padding: 10px 14px;
   font-size: 12.5px; display: flex; align-items: center; gap: 8px; animation: slide-in .2s ease;
-  max-width: 360px;
+  max-width: 360px; overflow-wrap: anywhere;
 }
 @keyframes slide-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
 .toast.ok svg { color: var(--ok); }
