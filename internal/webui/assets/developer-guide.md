@@ -339,6 +339,10 @@ proxy_set_header Host $http_host;
 | --- | --- |
 | `Host` | `$http_host` |
 
+![Lucky 高级设置：HTTP 后端请求头与自定义配置](lucky-host.svg)
+
+图中同时演示了「后端请求头」和「自定义配置」两种写法，实际配置任选一种即可。
+
 4. 调试时可临时加一行，确认实际转发的 Host：
 
 ```nginx

@@ -1138,6 +1138,8 @@ print(s3.list_buckets()["Buckets"])`)}`,
             <li><b>HTTP 后端请求头</b>：新增 Header，名称 <code class="mono">Host</code>，值 <code class="mono">$http_host</code></li>
           </ul>
           <p>同时确认「使用目标地址 Host 请求头」处于关闭状态（开启后 Host 会变成后端地址）。调试时可在自定义配置里临时加一行 <code class="mono">add_header X-Debug-Host $http_host always;</code>，用 <code class="mono">curl -sI</code> 检查响应头出现 <code class="mono">X-Debug-Host: 域名:端口</code> 后再删除。</p>
+          <img class="docs-shot" src="assets/lucky-host.svg" alt="Lucky 高级设置：HTTP 后端请求头 Host 与自定义配置">
+          <p class="docs-note">图中同时演示了「后端请求头」和「自定义配置」两种写法，实际配置任选一种即可。</p>
           <p>完成后在“设置 → 网络”填写 <code class="mono">https://s3.example.com</code>，页面展示与分享链接会自动切换。管理端始终从飞牛桌面进入，不要通过反向代理暴露。</p>`,
       },
       {

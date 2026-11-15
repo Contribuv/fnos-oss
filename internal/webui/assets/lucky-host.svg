@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-label="Lucky 高级设置：HTTP 后端请求头 Host=$http_host 与自定义配置">
+  <defs>
+    <style>
+      .panel { fill: #1c1c20; }
+      .title { fill: #f2f3f5; font: 600 26px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .tab { fill: #9a9aa3; font: 500 15px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .tab-on { fill: #4d8dff; font: 600 15px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .section { fill: #4d8dff; font: 600 15px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .label { fill: #f0f1f4; font: 600 17px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .hint { fill: #8d8d97; font: 400 13px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .field { fill: #232329; stroke: #3a3a44; stroke-width: 1; }
+      .value { fill: #e8eaf0; font: 500 15px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .mono { fill: #dbe6f7; font: 500 15px Consolas, "Cascadia Mono", monospace; }
+      .link { fill: #4d8dff; font: 500 15px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .btn { fill: #2a2a31; stroke: #46464f; stroke-width: 1; }
+      .btn-primary { fill: #3b7bff; }
+      .btn-text { fill: #e9eaee; font: 500 15px system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .divider { stroke: #2b2b31; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect class="panel" x="0" y="0" width="1200" height="780" rx="16"/>
+  <rect x="0.5" y="0.5" width="1199" height="779" rx="16" fill="none" stroke="#33333b"/>
+
+  <text class="title" x="40" y="58">编辑</text>
+  <circle cx="1132" cy="50" r="18" fill="#2a2a31" stroke="#3d3d46"/>
+  <path d="M1126 44 L1138 56 M1138 44 L1126 56" stroke="#b9bac2" stroke-width="2" stroke-linecap="round"/>
+
+  <text class="tab" x="40" y="118">基础设置</text>
+  <text class="tab" x="152" y="118">认证设置</text>
+  <text class="tab" x="264" y="118">安全设置</text>
+  <text class="tab" x="376" y="118">日志设置</text>
+  <text class="tab-on" x="486" y="118">高级设置</text>
+  <rect x="486" y="134" width="62" height="3" rx="1.5" fill="#4d8dff"/>
+  <line class="divider" x1="40" y1="158" x2="1160" y2="158"/>
+
+  <text class="section" x="40" y="208">HTTP 后端请求头</text>
+  <text class="label" x="40" y="250">后端请求头</text>
+  <text class="link" x="1032" y="250">＋ 添加 Header</text>
+  <text class="hint" x="40" y="278">在请求发送到后端前设置、覆盖或删除 Header；HTTP、HTTPS 和 Unix Socket 后端均可使用。</text>
+
+  <rect class="field" x="40" y="302" width="180" height="56" rx="8"/>
+  <text class="value" x="58" y="336">设置/覆盖 ▾</text>
+  <rect class="field" x="236" y="302" width="320" height="56" rx="8"/>
+  <text class="hint" x="254" y="326">Header 名称</text>
+  <text class="value" x="254" y="348">Host</text>
+  <rect class="field" x="572" y="302" width="496" height="56" rx="8"/>
+  <text class="hint" x="590" y="326">Header 值</text>
+  <text class="value" x="590" y="348">$http_host</text>
+  <path d="M1104 316 l14 14 M1118 316 l-14 14" stroke="#e0565f" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M1100 322 h-8 v16 h8" fill="none" stroke="#e0565f" stroke-width="2"/>
+
+  <line class="divider" x1="40" y1="404" x2="1160" y2="404"/>
+
+  <text class="section" x="40" y="452">自定义配置</text>
+  <text class="label" x="40" y="492">自定义配置</text>
+  <circle cx="152" cy="487" r="8" fill="none" stroke="#8d8d97"/>
+  <text class="hint" x="150" y="492" text-anchor="middle">?</text>
+
+  <rect x="40" y="510" width="1120" height="112" rx="10" fill="#17171b" stroke="#33333b"/>
+  <text class="mono" x="60" y="548">proxy_set_header Host $http_host;</text>
+  <text class="mono" x="60" y="586">add_header X-Debug-Host $http_host always;</text>
+
+  <text class="link" x="40" y="664">检查语法</text>
+
+  <line class="divider" x1="40" y1="696" x2="1160" y2="696"/>
+  <rect class="btn" x="952" y="716" width="96" height="42" rx="8"/>
+  <text class="btn-text" x="1000" y="743" text-anchor="middle">取消</text>
+  <rect class="btn-primary" x="1060" y="716" width="96" height="42" rx="8"/>
+  <text class="btn-text" x="1108" y="743" text-anchor="middle">编辑</text>
+</svg>

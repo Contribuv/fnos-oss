@@ -418,6 +418,10 @@ body.nav-lock { overflow: hidden; }
 .docs-faq b { display: block; margin-bottom: 2px; }
 .docs-main .code-block { margin: 8px 0 2px; }
 .docs-main .code-block pre { font-size: 11.5px; }
+.docs-shot {
+  display: block; width: 100%; height: auto; margin: 12px 0 6px;
+  border: 1px solid var(--border); border-radius: 10px; background: #17171b;
+}
 .docs-main code.mono { font-size: 11.5px; background: var(--surface-3); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
 .help-body code, .field .help code { overflow-wrap: anywhere; }
 .toast-root { position: fixed; right: 22px; bottom: 22px; display: grid; gap: 8px; z-index: 70; }
