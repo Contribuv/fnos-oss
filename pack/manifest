@@ -1,5 +1,5 @@
 appname=fnos-oss
-version=1.0.11
+version=1.0.12
 display_name=轻量对象存储
 desc=轻量、私有部署的 S3 兼容对象存储。支持存储桶、访问密钥、分段上传、分享链接与公共读策略，管理端通过飞牛统一网关访问。
 platform=x86
@@ -16,4 +16,4 @@ ctl_stop=true
 service_port=9100
 checkport=false
 disable_authorization_path=false
-changelog=访问密钥可按存储桶授权并支持只读；ListBuckets 与预签名按密钥范围过滤；管理端支持创建与编辑密钥范围；补充密钥权限说明。
+changelog=移动端访问密钥改为卡片布局，修复长密钥与范围文字竖排、溢出；优化移动端弹窗间距与勾选列表对齐。

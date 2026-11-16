@@ -669,21 +669,21 @@
     const [data, bucketData] = await Promise.all([api("/api/keys"), api("/api/buckets")]);
     state.keys = data.items || [];
     state.buckets = bucketData.items || [];
-    const scopeCell = (k) => {
+    const scopeBadges = (k) => {
       const names = k.buckets || [];
       const readOnly = k.readOnly ? ` <span class="badge warn">只读</span>` : "";
       if (!names.length) return `<span class="badge">全部桶</span>${readOnly}`;
-      return `<span class="badge">${names.length} 个桶</span>${readOnly}<div class="tiny dim mono" style="margin-top:3px">${names.map(esc).join("、")}</div>`;
+      return `<span class="badge">${names.length} 个桶</span>${readOnly}<div class="tiny dim mono scope-names">${names.map(esc).join("、")}</div>`;
     };
     const rows = state.keys.map((k) => {
       const revealed = state.revealedSecrets.has(k.accessKey);
       return `<tr>
         <td><div class="name-cell"><span class="ico">${icon("key")}</span><div class="txt"><b>${esc(k.label || "未命名")}</b><span>创建于 ${fmtDate(k.created)}</span></div></div></td>
-        <td><div class="row-inline"><code class="mono">${esc(k.accessKey)}</code><button class="icon-btn" data-act="copy" data-copy="${esc(k.accessKey)}" title="复制 Access Key">${icon("copy")}</button></div></td>
-        <td><div class="row-inline"><code class="mono" style="min-width:120px">${revealed ? esc(k.secretKey) : "••••••••••••••••"}</code>
+        <td><div class="row-inline nowrap-cell"><code class="mono">${esc(k.accessKey)}</code><button class="icon-btn" data-act="copy" data-copy="${esc(k.accessKey)}" title="复制 Access Key">${icon("copy")}</button></div></td>
+        <td class="hide-sm"><div class="row-inline nowrap-cell"><code class="mono">${revealed ? esc(k.secretKey) : "••••••••••••••••"}</code>
           <button class="icon-btn" data-act="reveal" data-access="${esc(k.accessKey)}" title="${revealed ? "隐藏" : "显示"} Secret">${icon(revealed ? "eyeoff" : "eye")}</button>
           <button class="icon-btn" data-act="copy" data-copy="${esc(k.secretKey)}" title="复制 Secret">${icon("copy")}</button></div></td>
-        <td class="hide-sm">${scopeCell(k)}</td>
+        <td class="scope-cell">${scopeBadges(k)}</td>
         <td><button class="switch ${k.enabled ? "on" : ""}" data-act="toggle-key" data-access="${esc(k.accessKey)}" data-enabled="${k.enabled}" title="${k.enabled ? "停用" : "启用"}"></button></td>
         <td class="dim hide-sm nowrap">${k.lastUsed ? fmtAgo(k.lastUsed) : "从未使用"}</td>
         <td><div class="actions">
@@ -691,6 +691,28 @@
           <button class="icon-btn" data-act="delete-key" data-access="${esc(k.accessKey)}" title="删除">${icon("trash")}</button>
         </div></td>
       </tr>`;
+    }).join("");
+
+    const cards = state.keys.map((k) => {
+      const revealed = state.revealedSecrets.has(k.accessKey);
+      return `<div class="key-card">
+        <div class="key-card-head">
+          <div class="name-cell"><span class="ico">${icon("key")}</span><div class="txt"><b>${esc(k.label || "未命名")}</b><span>创建于 ${fmtDate(k.created)}</span></div></div>
+          <button class="switch ${k.enabled ? "on" : ""}" data-act="toggle-key" data-access="${esc(k.accessKey)}" data-enabled="${k.enabled}" title="${k.enabled ? "停用" : "启用"}"></button>
+        </div>
+        <div class="key-card-scope">${scopeBadges(k)}</div>
+        <div class="key-line"><span class="k">Access</span><code class="mono">${esc(k.accessKey)}</code><button class="icon-btn" data-act="copy" data-copy="${esc(k.accessKey)}" title="复制 Access Key">${icon("copy")}</button></div>
+        <div class="key-line"><span class="k">Secret</span><code class="mono">${revealed ? esc(k.secretKey) : "••••••••••••••••"}</code>
+          <button class="icon-btn" data-act="reveal" data-access="${esc(k.accessKey)}" title="${revealed ? "隐藏" : "显示"} Secret">${icon(revealed ? "eyeoff" : "eye")}</button>
+          <button class="icon-btn" data-act="copy" data-copy="${esc(k.secretKey)}" title="复制 Secret">${icon("copy")}</button></div>
+        <div class="key-card-foot">
+          <span class="dim tiny">${k.lastUsed ? "最近使用 " + fmtAgo(k.lastUsed) : "从未使用"}</span>
+          <div class="actions">
+            <button class="icon-btn" data-act="edit-key-scope" data-access="${esc(k.accessKey)}" title="编辑范围">${icon("shield")}</button>
+            <button class="icon-btn" data-act="delete-key" data-access="${esc(k.accessKey)}" title="删除">${icon("trash")}</button>
+          </div>
+        </div>
+      </div>`;
     }).join("");
 
     page(`
@@ -702,11 +724,13 @@
         <div class="b-icon">${icon("lock")}</div>
         <div class="b-body"><b>Secret Key 等同密码，请妥善保管</b><p>建议为不同客户端分别创建密钥。可把密钥限制到指定存储桶并设为只读，泄露时影响范围更小。</p></div>
       </div>
-      <div class="card">
-        ${state.keys.length ? `<div class="table-wrap"><table class="table">
-          <thead><tr><th>标签</th><th>Access Key</th><th>Secret Key</th><th class="hide-sm">范围</th><th>启用</th><th class="hide-sm">最近使用</th><th></th></tr></thead>
-          <tbody>${rows}</tbody></table></div>` : empty("还没有访问密钥", "创建一对 Access Key 与 Secret Key，然后配置到 S3 客户端。", "新建密钥", "new-key")}
+      ${state.keys.length ? `
+      <div class="card keys-desktop">
+        <div class="table-wrap"><table class="table keys-table">
+          <thead><tr><th>标签</th><th>Access Key</th><th class="hide-sm">Secret Key</th><th class="scope-cell">范围</th><th>启用</th><th class="hide-sm">最近使用</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
       </div>
+      <div class="keys-mobile">${cards}</div>` : `<div class="card">${empty("还没有访问密钥", "创建一对 Access Key 与 Secret Key，然后配置到 S3 客户端。", "新建密钥", "new-key")}</div>`}
       <div class="callout" style="margin-top:16px">S3 Signature Version 必须为 <b>v4</b>。Region 可填写 <code class="mono">us-east-1</code>（或保持服务端默认值），并使用路径风格寻址。</div>`);
     setCrumb();
   }
