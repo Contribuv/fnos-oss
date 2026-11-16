@@ -215,13 +215,16 @@ body.nav-lock { overflow: hidden; }
 .switch.on::after { transform: translateX(16px); }
 
 /* ---------------------------------------------------------------- cards + stats */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
 .card-pad { padding: 18px; }
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--border); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--border); min-width: 0; }
 .card-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
-.card-body { padding: 16px 18px; }
+.card-body { padding: 16px 18px; min-width: 0; }
 .card-foot { padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface-2); border-radius: 0 0 var(--radius) var(--radius); }
-.stack { display: grid; gap: 16px; }
+/* minmax(0, 1fr) is deliberate: a bare (implicit) auto track refuses to shrink
+   below the min-content width of its items, so a long unbreakable line inside a
+   card used to push the whole page wider than the phone viewport. */
+.stack { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
 .grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
 .grid2-even { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -509,6 +512,9 @@ body.nav-lock { overflow: hidden; }
   .avatar { width: 30px; height: 30px; }
   .topbar { height: 52px; }
   .table .name-cell .txt b { max-width: 190px; }
+  .card-head { flex-wrap: wrap; }
+  .kv .row { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .kv .v { justify-content: flex-start; text-align: left; }
   .hide-sm { display: none !important; }
   .modal { border-radius: 12px; }
   .modal.docs { max-height: 92vh; }
