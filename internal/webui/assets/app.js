@@ -197,6 +197,15 @@
     return parentTheme() || sdkTheme || systemTheme();
   }
 
+  // Three-state cycle for the top-bar button, matching the settings dropdown
+  // order: auto -> light -> dark -> auto.
+  function nextThemePreference() {
+    const pref = themePreference();
+    if (pref === "auto") return "light";
+    if (pref === "light") return "dark";
+    return "auto";
+  }
+
   function applyTheme() {
     const theme = resolvedTheme();
     document.documentElement.dataset.theme = theme;
@@ -369,9 +378,16 @@
   function applyThemeIcon() {
     const btn = app.querySelector('[data-act="theme"]');
     if (!btn) return;
+    const pref = themePreference();
     const dark = document.documentElement.dataset.theme === "dark";
+    const label = dark ? "深色" : "浅色";
+    const next = nextThemePreference();
+    const state = pref === "auto" ? `跟随飞牛桌面（当前${label}）`
+      : pref === "light" ? "浅色（已固定）" : "深色（已固定）";
+    const action = next === "auto" ? "恢复跟随飞牛桌面" : `切换为${next === "light" ? "浅色" : "深色"}`;
     btn.innerHTML = icon(dark ? "sun" : "moon");
-    btn.title = dark ? "切换到浅色" : "切换到深色";
+    btn.title = `${state} · 点击${action}`;
+    btn.setAttribute("aria-label", btn.title);
   }
 
   // ------------------------------------------------------------- gate
@@ -1569,10 +1585,10 @@ const url = await getSignedUrl(
         case "refresh": await route(); break;
         case "reload": location.reload(); break;
         case "theme": {
-          const next = resolvedTheme() === "dark" ? "light" : "dark";
+          const next = nextThemePreference();
           localStorage.setItem(THEME_KEY, next);
           applyTheme();
-          toast(next === "dark" ? "已切换为深色外观" : "已切换为浅色外观");
+          toast(next === "auto" ? "已恢复跟随飞牛桌面" : next === "dark" ? "已固定为深色外观" : "已固定为浅色外观");
           break;
         }
         case "help": helpModal(); break;
