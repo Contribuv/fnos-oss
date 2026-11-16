@@ -1532,7 +1532,7 @@ const url = await getSignedUrl(
     const msg = res && res.msg ? res.msg : "目录授权失败";
     const code = Number(res && res.code);
     const detail = {
-      1: "仅管理员可进行此操作，请用管理员账号登录飞牛",
+      1: "当前飞牛账号不是管理员，请用管理员账号登录飞牛桌面后重试",
       1000001: "飞牛登录状态已失效，请重新登录",
       1000002: "应用缺少文件授权 Scope，请升级到 1.0.1 后重新安装",
       1003103: "应用权限校验失败，请升级到 1.0.1 并在应用中心重新安装",
@@ -1541,6 +1541,13 @@ const url = await getSignedUrl(
     }[code];
     const suffix = Number.isFinite(code) ? `（code ${code}）` : "";
     return (detail ? `${msg}：${detail}` : msg) + suffix;
+  }
+
+  // 飞牛宿主把“用户点了取消”也报成 code 1（msg 为 Operation failed），
+  // 和真正的“非管理员”同码不同文。按 msg 区分，否则每次取消都会弹出误导性的权限报错。
+  function isPickerCancel(res) {
+    if (!res || Number(res.code) !== 1) return false;
+    return !/管理员|admin|权限|permission/i.test(String(res.msg || ""));
   }
 
   // Ask the backend what the host actually granted. An empty list after a
@@ -1572,6 +1579,7 @@ const url = await getSignedUrl(
       const res = await sdk.pickSharedFile({ title: "选择存储目录", okText: "授权并选择" });
       if (!res) return;
       if (res.code !== 0) {
+        if (isPickerCancel(res)) return;
         const extra = await sharedAccessHint();
         allowManualRoot(describeSDKError(res) + extra + "。也可直接输入已授权的绝对路径");
         return;
