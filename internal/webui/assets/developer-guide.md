@@ -391,3 +391,33 @@ curl -sI "https://s3.example.com:7755/demo-bucket/uploads/a.jpg?X-Amz-..." | hea
 | `InvalidAccessKeyId` | Key 不存在或已停用 |
 | `RequestTimeTooSkewed` | 客户端与服务端时间偏差过大 |
 | `NoSuchKey` | 对象不存在 |
+
+## 14. 客户端案例：Typecho 博客
+
+开源示例：<https://github.com/Contribuv/Typecho-fnos-oss>
+
+它把 Typecho 的图片与附件直接写入 fnos-oss，可以作为 PHP 应用、博客或图床对接的参考实现。
+
+### 14.1 准备
+
+1. 新建独立桶 `blog`。
+2. 新建访问密钥，标签填 `typecho`，绑定 `blog` 桶；需要上传图片时保持读写。
+3. 文章图片要能被任何人直接打开时，把桶设为 `public-read`；否则保持 `private`，由 Typecho 生成预签名 URL。
+
+### 14.2 S3 参数
+
+| 参数 | 值 |
+| --- | --- |
+| Endpoint | `https://file.example.com:7755`（含端口，浏览器可访问） |
+| Region | `us-east-1` |
+| 寻址方式 | path-style（必须） |
+| Bucket | `blog` |
+| 对象键 | 建议带日期前缀，例如 `uploads/2026/11/xxx.jpg` |
+
+### 14.3 对接要点
+
+- Secret Key 只保存在 Typecho 服务端，主题与前端 JS 不得参与签名。
+- 公共读桶适合文章配图；私有桶请使用预签名 URL，并控制有效期。
+- 大文件建议走后端流式上传或分段上传，注意反向代理的请求体上限与超时。
+- 更换域名或端口后，已发出的裸链接会失效；预签名链接需要重新生成。
+- 示例代码与配置字段以仓库 README 为准。

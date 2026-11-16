@@ -1281,6 +1281,37 @@ const url = await getSignedUrl(
           <p>有效期范围为 1 秒 ~ 7 天，页面展示建议 5~15 分钟；Secret Key 只能保存在服务端。Node / Python / Go / PHP 完整示例、错误码与验收命令见“下载开发者文档”。</p>`,
       },
       {
+        id: "client",
+        title: "客户端案例",
+        body: `
+          <h4>客户端案例：Typecho 博客</h4>
+          <p>开源示例仓库：<a href="https://github.com/Contribuv/Typecho-fnos-oss" target="_blank" rel="noopener">Contribuv/Typecho-fnos-oss</a>。它把 Typecho 的图片与附件直接写入 fnos-oss，可以作为 PHP 应用、博客或图床对接的参考实现。</p>
+          <h5>整体链路</h5>
+          <p>浏览器上传 → Typecho（PHP）→ S3 API（path-style）→ 对象存储。文章图片由 Typecho 输出 URL，按桶策略直接访问，或由后端签发预签名链接。</p>
+          <h5>准备</h5>
+          <ol class="docs-steps">
+            <li>在“存储桶”新建独立桶，例如 <code class="mono">blog</code>。</li>
+            <li>在“访问密钥”新建密钥，标签填 <code class="mono">typecho</code>，绑定 <code class="mono">blog</code> 桶；需要上传图片时保持读写。</li>
+            <li>如果文章图片要能被任何人直接打开，把 <code class="mono">blog</code> 设为公共读；否则保持私有，由 Typecho 生成预签名链接。</li>
+          </ol>
+          <h5>S3 参数</h5>
+          <ul class="docs-list">
+            <li><b>Endpoint：</b>浏览器能访问的完整地址，例如 <code class="mono">https://file.example.com:7755</code>，不要用内网 IP。</li>
+            <li><b>Region：</b><code class="mono">us-east-1</code>，与服务端设置一致。</li>
+            <li><b>寻址方式：</b>必须为 path-style。</li>
+            <li><b>Bucket：</b><code class="mono">blog</code>；对象键建议带日期前缀，例如 <code class="mono">uploads/2026/11/xxx.jpg</code>。</li>
+            <li><b>密钥：</b>只使用绑定 <code class="mono">blog</code> 的专用密钥，Secret Key 只放在 Typecho 服务端。</li>
+          </ul>
+          <h5>对接要点</h5>
+          <ul class="docs-list">
+            <li>不要在主题或前端 JS 里计算签名，避免 Secret 泄露。</li>
+            <li>公共读桶适合文章配图；私有桶请使用预签名 URL，并控制有效期。</li>
+            <li>大文件建议走后端流式上传或分段上传，注意反向代理的请求体上限与超时。</li>
+            <li>更换域名或端口后，已发出的裸链接会失效；使用预签名链接时需重新生成。</li>
+          </ul>
+          <p class="docs-note">示例代码、配置字段与最新说明以仓库 README 为准；如果仓库尚未发布代码，可以先按上面的参数完成通用对接。</p>`,
+      },
+      {
         id: "data",
         title: "数据与备份",
         body: `
