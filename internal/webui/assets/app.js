@@ -135,11 +135,20 @@
     `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 
   // ------------------------------------------------------------- theme
-  // The console runs in a same-origin iframe on the fnOS desktop. "auto" follows
-  // the desktop theme (Semi CSS variable or the stored theme mode), then the OS
-  // preference. A manual choice in the top bar or settings overrides both.
+  // fnOS 1.2.0401+ exposes the theme through the open API:
+  // getPlatformConfig().theme and the "os/theme" host event. "auto" prefers
+  // those, falls back to sniffing a same-origin desktop iframe, then the OS
+  // preference. A manual choice in the top bar or settings overrides all.
   const THEME_KEY = "fnos-oss-theme";
   const THEME_MODES = ["auto", "light", "dark"];
+  let sdkTheme = "";
+
+  function normalizeTheme(v) {
+    const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    if (s === "dark" || s === "night" || s === "30") return "dark";
+    if (s === "light" || s === "day") return "light";
+    return "";
+  }
 
   function systemTheme() {
     return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -148,16 +157,29 @@
   function parentTheme() {
     try {
       const p = window.parent;
-      if (!p || p === window) return "";
-      const style = p.getComputedStyle(p.document.documentElement);
-      const bg = style.getPropertyValue("--semi-color-bg-0") || style.getPropertyValue("--semi-color-bg-1");
-      const m = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(bg || "");
-      if (m) {
-        const lum = 0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3];
-        return lum < 128 ? "dark" : "light";
+      if (!p || p === window || !p.document) return "";
+      const nodes = [p.document.documentElement, p.document.body].filter(Boolean);
+      // Semi Design (the fnOS desktop) puts theme-mode on html/body.
+      for (const el of nodes) {
+        const attr = normalizeTheme(el.getAttribute("theme-mode")) ||
+          normalizeTheme(el.getAttribute("data-theme")) ||
+          normalizeTheme(el.dataset && el.dataset.theme);
+        if (attr) return attr;
       }
-      // fnOS keeps an explicit theme mode; 30 is the dark mode value.
-      if (p.localStorage.getItem("fnos-theme-mode") === "30") return "dark";
+      // The Semi colour variables live on body, not documentElement.
+      for (const el of nodes) {
+        const style = p.getComputedStyle(el);
+        const bg = style.getPropertyValue("--semi-color-bg-0") || style.getPropertyValue("--semi-color-bg-1");
+        const m = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(bg || "");
+        if (m) {
+          const lum = 0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3];
+          return lum < 128 ? "dark" : "light";
+        }
+      }
+      // Older fnOS stores the mode as a number string; 30 means dark.
+      return normalizeTheme(p.localStorage.getItem("fnos-theme-mode")) ||
+        normalizeTheme(p.localStorage.getItem("fnos-theme")) ||
+        normalizeTheme(p.localStorage.getItem("theme-mode"));
     } catch (e) { /* cross-origin or detached parent */ }
     return "";
   }
@@ -170,7 +192,9 @@
   function resolvedTheme() {
     const pref = themePreference();
     if (pref === "light" || pref === "dark") return pref;
-    return parentTheme() || systemTheme();
+    // A live same-origin desktop reading wins over the SDK's startup snapshot;
+    // the snapshot is what makes cross-origin hosts follow along too.
+    return parentTheme() || sdkTheme || systemTheme();
   }
 
   function applyTheme() {
@@ -184,15 +208,48 @@
     const mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     if (mq) mq.addEventListener("change", () => { if (themePreference() === "auto") applyTheme(); });
     window.addEventListener("storage", (e) => {
-      if (e.key === THEME_KEY || e.key === "fnos-theme-mode") applyTheme();
+      if (e.key === THEME_KEY || e.key === "fnos-theme-mode" || e.key === "fnos-theme" || e.key === "theme-mode") applyTheme();
     });
     try {
       const p = window.parent;
       if (p && p !== window) {
         new MutationObserver(() => { if (themePreference() === "auto") applyTheme(); })
-          .observe(p.document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
+          .observe(p.document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme", "theme-mode"] });
+        if (p.document.body) {
+          new MutationObserver(() => { if (themePreference() === "auto") applyTheme(); })
+            .observe(p.document.body, { attributes: true, attributeFilter: ["class", "style", "data-theme", "theme-mode"] });
+        }
       }
     } catch (e) { /* cross-origin parent */ }
+  }
+
+  // Reads the host theme through fnOS' open API and keeps it in sync:
+  // getPlatformConfig().theme for the current value, $on("os/theme") for
+  // changes. The SDK is already vendored for the folder picker, so no extra
+  // download. Both calls are no-ops outside the Web host.
+  async function initHostTheme() {
+    let sdk;
+    try {
+      sdk = await loadTrimSDK();
+    } catch (e) { return; }
+
+    const applyHost = (theme) => {
+      const next = normalizeTheme(theme);
+      if (!next) return;
+      sdkTheme = next;
+      if (themePreference() === "auto") applyTheme();
+    };
+
+    try {
+      const cfg = await sdk.getPlatformConfig();
+      applyHost(cfg && cfg.theme);
+    } catch (e) { /* standalone browser or older fnOS */ }
+
+    if (sdk.isWeb === true && sdk.isStandaloneWeb === false) {
+      try {
+        await sdk.$on("os/theme", applyHost);
+      } catch (e) { /* $on is Web-host only */ }
+    }
   }
 
   // ------------------------------------------------------------- shell
@@ -1721,6 +1778,7 @@ const url = await getSignedUrl(
   async function bootApp() {
     applyTheme();
     watchTheme();
+    initHostTheme();
     try {
       const [session, overview] = await Promise.all([
         api("/api/session"),

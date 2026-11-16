@@ -18,13 +18,24 @@
         var theme = pref === "light" || pref === "dark" ? pref : "";
         if (!theme) {
           try {
-            var style = getComputedStyle(parent.document.documentElement);
-            var bg = style.getPropertyValue("--semi-color-bg-0") || style.getPropertyValue("--semi-color-bg-1");
-            var m = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(bg || "");
-            if (m) {
-              theme = (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) < 128 ? "dark" : "light";
-            } else if (parent.localStorage.getItem("fnos-theme-mode") === "30") {
-              theme = "dark";
+            var roots = [parent.document.documentElement, parent.document.body].filter(Boolean);
+            for (var i = 0; i < roots.length && !theme; i++) {
+              var el = roots[i];
+              var attr = el.getAttribute("theme-mode") || el.getAttribute("data-theme") || (el.dataset && el.dataset.theme);
+              if (attr === "dark" || attr === "light") theme = attr;
+            }
+            for (var j = 0; j < roots.length && !theme; j++) {
+              var style = getComputedStyle(roots[j]);
+              var bg = style.getPropertyValue("--semi-color-bg-0") || style.getPropertyValue("--semi-color-bg-1");
+              var m = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(bg || "");
+              if (m) theme = (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) < 128 ? "dark" : "light";
+            }
+            if (!theme) {
+              var mode = parent.localStorage.getItem("fnos-theme-mode") ||
+                parent.localStorage.getItem("fnos-theme") ||
+                parent.localStorage.getItem("theme-mode");
+              if (mode === "30" || mode === "dark") theme = "dark";
+              else if (mode === "light") theme = "light";
             }
           } catch (e) { /* cross-origin parent */ }
           if (!theme) theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -50,6 +61,6 @@
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
   <noscript><div class="noscript">管理端需要启用 JavaScript。</div></noscript>
-  <script src="assets/app.js?v=27"></script>
+  <script src="assets/app.js?v=28"></script>
 </body>
 </html>
