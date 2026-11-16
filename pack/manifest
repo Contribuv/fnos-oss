@@ -1,7 +1,7 @@
 appname=fnos-oss
-version=1.0.16
+version=1.0.17
 display_name=轻量对象存储
-desc=轻量、私有部署的 S3 兼容对象存储。支持存储桶、访问密钥、分段上传、分享链接与公共读策略，管理端通过飞牛统一网关访问。
+desc=轻量、私有部署的 S3 兼容对象存储。支持存储桶、访问密钥、分段上传、分享链接与公共读策略。可直接对接 Typecho 博客（开源插件），也可按开发文档自行接入博客、图床等应用。
 platform=x86
 source=thirdparty
 maintainer=豪子
@@ -16,4 +16,4 @@ ctl_stop=true
 service_port=9100
 checkport=false
 disable_authorization_path=false
-changelog=开发文档客户端案例按 Typecho 插件实际实现更新：安装步骤、配置项、直链/预签名/代理对比与注意事项。
+changelog=应用描述与 README 明确说明可直接对接 Typecho 博客，也可按开发文档自行接入博客、图床等应用。

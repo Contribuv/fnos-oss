@@ -8,6 +8,8 @@
 
 一个可安装到飞牛 fnOS 的单机 S3 兼容对象存储。后端是单个 Go 二进制，管理端内嵌在二进制中、通过飞牛统一网关访问；S3 API 使用独立 TCP 端口，供 rclone、AWS CLI、boto3 等客户端连接。
 
+已提供开源的 [Typecho 对象存储插件](https://github.com/Contribuv/Typecho-fnos-oss)，可以把博客附件直接写入本服务；其他博客、图床或业务系统也可以按开发文档自行对接（标准的 S3 SigV4 + path-style 即可）。
+
 ## 功能
 
 - S3 Signature V4：Header 签名与 Presigned URL（GET / PUT）
@@ -25,7 +27,9 @@
 
 ## 客户端案例
 
-- [Typecho-fnos-oss](https://github.com/Contribuv/Typecho-fnos-oss)：Typecho 附件上传插件，支持直链 / 预签名 / 代理、分段上传与失败回退本地。
+- [Typecho-fnos-oss](https://github.com/Contribuv/Typecho-fnos-oss)：Typecho 附件上传插件，支持直链 / 预签名 / 代理、分段上传与失败回退本地。安装与配置见管理端「开发文档 → 客户端案例」。
+
+除 Typecho 外，任何支持 S3 协议的应用都可以直接接入；自研博客、图床或后台系统可按「开发文档」中的签名、上传与预签名示例实现。
 
 ## 界面与访问方式
 
@@ -197,12 +201,16 @@ build.ps1 / build.sh 交叉编译 + fnpack 打包
 
 ## 更新日志
 
-### v1.0.16 · 2026-11-16
+### v1.0.17 · 2026-11-16
 
-- 开发文档「客户端案例」按 Typecho 插件实际实现更新：安装、配置项、三种访问方式与注意事项
+- README 与应用描述明确说明：可直接对接 Typecho 博客，也可按开发文档自行接入博客、图床等应用
 
 <details>
 <summary>历史版本</summary>
+
+#### v1.0.16 · 2026-11-16
+
+- 开发文档「客户端案例」按 Typecho 插件实际实现更新：安装、配置项、三种访问方式与注意事项
 
 #### v1.0.15 · 2026-11-16
 
