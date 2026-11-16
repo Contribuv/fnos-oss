@@ -1,5 +1,11 @@
 # fnOS 轻量对象存储（fnos-oss）
 
+[![Release](https://img.shields.io/github/v/release/Contribuv/fnos-oss?label=release&color=3b7bff)](https://github.com/Contribuv/fnos-oss/releases)
+[![Platform](https://img.shields.io/badge/platform-x86%20%7C%20arm-4d8dff)](#安装)
+[![Go](https://img.shields.io/badge/go-1.26%2B-00add8?logo=go&logoColor=white)](https://go.dev/)
+[![fnOS](https://img.shields.io/badge/fnOS-1.2.0%2B-1f2937)](#安装)
+[![Downloads](https://img.shields.io/github/downloads/Contribuv/fnos-oss/total?label=downloads&color=33c38c)](https://github.com/Contribuv/fnos-oss/releases)
+
 一个可安装到飞牛 fnOS 的单机 S3 兼容对象存储。后端是单个 Go 二进制，管理端内嵌在二进制中、通过飞牛统一网关访问；S3 API 使用独立 TCP 端口，供 rclone、AWS CLI、boto3 等客户端连接。
 
 ## 功能
@@ -184,3 +190,56 @@ pack/                fnOS fpk 打包目录（manifest、wizard、cmd、图标）
 tools/genicon/       图标生成器
 build.ps1 / build.sh 交叉编译 + fnpack 打包
 ```
+
+## 更新日志
+
+### v1.0.14 · 2026-11-16
+
+- 访问密钥改为**单选绑定一个存储桶**，需要访问全部桶时保持“全部桶”
+- 密钥范围改用桶名徽标展示，移动端同步适配
+- README 新增版本徽标与更新日志
+
+<details>
+<summary>历史版本</summary>
+
+#### v1.0.13 · 2026-11-16
+
+- 移动端汉堡按钮触控区域提升到 36px，抽屉打开时隐藏失效按钮
+- 移动端顶栏移除 `backdrop-filter`，修复点击与滚动时的闪烁
+
+#### v1.0.12 · 2026-11-16
+
+- 移动端访问密钥改为卡片布局，不再把表格压成竖排
+- 修复长 Access Key / Secret Key 与范围文字溢出
+- 移动端弹窗内边距与勾选列表对齐优化
+
+#### v1.0.11 · 2026-11-16
+
+- 访问密钥支持按存储桶授权与只读权限
+- `ListBuckets` 与预签名链接按密钥范围过滤
+- 管理端支持创建与编辑密钥范围
+
+#### v1.0.10 · 2026-11-16
+
+- 修复移动端卡片撑破视口导致的整页横向溢出
+
+#### v1.0.8 · 2026-11-16
+
+- 顶栏外观按钮支持浅色 / 深色 / 跟随系统三态循环
+- 浅色主题侧栏跟随配色，修复移动端用户胶囊
+
+#### v1.0.5 · 2026-11-16
+
+- 界面细节与稳定性修复
+
+#### v1.0.4 · 2026-11-15
+
+- 修复分享链接与长文本横向溢出
+- 新增私有桶预签名 URL 网页对接文档
+- 修复管理端无尾斜杠访问时页面空白
+
+#### v1.0.1 · 2026-11-15
+
+- 首个公开版本：S3 兼容对象存储、管理端、飞牛打包
+
+</details>

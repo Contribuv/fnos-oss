@@ -865,7 +865,7 @@ func (a *Admin) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 // validateKeyBuckets drops duplicates and rejects names that no longer exist, so
 // a key can never be scoped to a bucket that is not there.
 func (a *Admin) validateKeyBuckets(in []string) ([]string, error) {
-	out := make([]string, 0, len(in))
+	out := make([]string, 0, 1)
 	seen := make(map[string]bool, len(in))
 	for _, b := range in {
 		b = strings.TrimSpace(b)
@@ -877,6 +877,9 @@ func (a *Admin) validateKeyBuckets(in []string) ([]string, error) {
 		}
 		seen[b] = true
 		out = append(out, b)
+	}
+	if len(out) > 1 {
+		return nil, fmt.Errorf("一个访问密钥只能绑定一个存储桶；需要访问全部桶时请不要选择。")
 	}
 	return out, nil
 }

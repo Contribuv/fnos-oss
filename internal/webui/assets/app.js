@@ -671,9 +671,9 @@
     state.buckets = bucketData.items || [];
     const scopeBadges = (k) => {
       const names = k.buckets || [];
-      const readOnly = k.readOnly ? ` <span class="badge warn">只读</span>` : "";
+      const readOnly = k.readOnly ? `<span class="badge warn">只读</span>` : "";
       if (!names.length) return `<span class="badge">全部桶</span>${readOnly}`;
-      return `<span class="badge">${names.length} 个桶</span>${readOnly}<div class="tiny dim mono scope-names">${names.map(esc).join("、")}</div>`;
+      return `<span class="badge primary" title="${esc(names.join("、"))}">${esc(names[0])}</span>${readOnly}`;
     };
     const rows = state.keys.map((k) => {
       const revealed = state.revealedSecrets.has(k.accessKey);
@@ -1449,11 +1449,12 @@ const url = await getSignedUrl(
             <input class="input" id="key-label" name="label" value="${isEdit ? esc(existing.label || "") : ""}" placeholder="例如 备份脚本 / 手机相册" autocomplete="off" ${isEdit ? "readonly" : ""}>
           </div>
           <div class="field">
-            <label>授权存储桶</label>
-            <div class="check-list">
-              ${buckets.length ? buckets.map((b) => `<label class="check-row"><input type="checkbox" name="buckets" value="${esc(b.name)}" ${scope.includes(b.name) ? "checked" : ""}><span>${esc(b.name)}</span></label>`).join("") : `<div class="help">还没有存储桶，创建后可以再回来设置范围。</div>`}
-            </div>
-            <div class="help">不勾选任何桶表示全部桶（保持旧行为）；勾选后该密钥只能访问选中的桶。</div>
+            <label for="key-bucket">绑定存储桶</label>
+            <select class="input" id="key-bucket" name="bucket">
+              <option value="">全部桶（不限制）</option>
+              ${buckets.map((b) => `<option value="${esc(b.name)}" ${scope.includes(b.name) ? "selected" : ""}>${esc(b.name)}</option>`).join("")}
+            </select>
+            <div class="help">一个密钥只能绑定一个桶；选择“全部桶”则不限制。${buckets.length ? "" : "当前还没有存储桶。"}</div>
           </div>
           <div class="field">
             <label class="check-row"><input type="checkbox" name="readOnly" ${ro ? "checked" : ""}><span>只读：禁止上传、删除对象和修改桶</span></label>
@@ -1800,18 +1801,18 @@ const url = await getSignedUrl(
         toast(data.bucket && data.bucket.rootPath ? `已指向 ${data.bucket.rootPath}` : "已改回应用数据卷", "ok");
         await route();
       } else if (kind === "new-key") {
-        const buckets = fd.getAll("buckets").map(String);
+        const bucket = String(fd.get("bucket") || "");
         const readOnly = fd.get("readOnly") === "on";
-        const data = await api("/api/keys", { method: "POST", body: { label: String(fd.get("label") || ""), buckets, readOnly } });
+        const data = await api("/api/keys", { method: "POST", body: { label: String(fd.get("label") || ""), buckets: bucket ? [bucket] : [], readOnly } });
         closeModal();
         state.revealedSecrets.add(data.key.accessKey);
         toast("密钥已创建，请复制并保存", "ok");
         await route();
       } else if (kind === "edit-key-scope") {
         const access = form.dataset.access;
-        const buckets = fd.getAll("buckets").map(String);
+        const bucket = String(fd.get("bucket") || "");
         const readOnly = fd.get("readOnly") === "on";
-        await api(`/api/keys/${enc(access)}`, { method: "PATCH", body: { buckets, readOnly } });
+        await api(`/api/keys/${enc(access)}`, { method: "PATCH", body: { buckets: bucket ? [bucket] : [], readOnly } });
         closeModal();
         toast("密钥范围已更新", "ok");
         await route();
