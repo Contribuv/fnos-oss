@@ -10,6 +10,7 @@
 - Range 下载、CopyObject、DeleteObjects、CORS
 - 分段上传：Create / UploadPart / Complete / Abort / ListParts / ListUploads
 - 访问密钥管理（启用、停用、删除、最近使用时间）
+- 访问密钥可按存储桶授权，支持只读密钥；未选桶表示全部桶
 - 桶策略：`private` / `public-read`（公共读仅允许匿名下载）
 - 管理端：概览、存储桶、访问密钥、连接示例、网络与安全、设置
 - 管理端可将整个存储桶（或当前目录）流式打包为 zip 下载，无需安装客户端

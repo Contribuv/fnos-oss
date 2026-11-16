@@ -159,6 +159,21 @@ func splitPath(p string) (bucket, key string) {
 
 func (s *Server) authorize(r *http.Request, bucket, key string, ai *authInfo) error {
 	if ai != nil {
+		if bucket != "" && !ai.allowsBucket(bucket) {
+			return errAccessDenied.withMessage("This access key is not allowed to access this bucket.")
+		}
+		read := r.Method == http.MethodGet || r.Method == http.MethodHead
+		if ai.ReadOnly && !read {
+			return errAccessDenied.withMessage("This access key is read-only.")
+		}
+		// Scoped keys may work inside their buckets but must not create, delete or
+		// reconfigure buckets. DeleteObjects is a POST without an object key, so it
+		// is the one non-read bucket-level call that stays allowed.
+		if len(ai.Buckets) > 0 && bucket != "" && key == "" && !read {
+			if !(r.Method == http.MethodPost && r.URL.Query().Has("delete")) {
+				return errAccessDenied.withMessage("Scoped access keys cannot manage buckets.")
+			}
+		}
 		return nil
 	}
 	if bucket == "" {
@@ -296,6 +311,9 @@ func (s *Server) handleListBuckets(w http.ResponseWriter, r *http.Request, ai *a
 	}
 	out := listAllBucketsResult{NS: s3NS, Owner: owner()}
 	for _, b := range buckets {
+		if !ai.allowsBucket(b.Name) {
+			continue
+		}
 		out.Buckets = append(out.Buckets, xmlBucket{Name: b.Name, CreationDate: isoTime(b.Created)})
 	}
 	return writeXML(w, http.StatusOK, out)

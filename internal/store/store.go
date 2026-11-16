@@ -810,6 +810,12 @@ func sumParts(parts []Part) int64 {
 // ---------------------------------------------------------------- keys
 
 func (s *Store) CreateKey(label string) (APIKey, error) {
+	return s.CreateKeyScoped(label, nil, false)
+}
+
+// CreateKeyScoped creates a key restricted to the given buckets. An empty bucket
+// list keeps the key unrestricted, matching the behaviour before scopes existed.
+func (s *Store) CreateKeyScoped(label string, buckets []string, readOnly bool) (APIKey, error) {
 	if label == "" {
 		label = "default"
 	}
@@ -819,12 +825,58 @@ func (s *Store) CreateKey(label string) (APIKey, error) {
 		Label:     label,
 		Created:   time.Now().UTC(),
 		Enabled:   true,
+		Buckets:   normalizeBuckets(buckets),
+		ReadOnly:  readOnly,
 	}
 	raw, _ := json.Marshal(k)
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket(bktKeys).Put([]byte(k.AccessKey), raw)
 	})
 	return k, err
+}
+
+// SetKeyScope replaces the key's bucket scope and read-only flag. An empty bucket
+// list removes the restriction and grants every bucket.
+func (s *Store) SetKeyScope(access string, buckets []string, readOnly bool) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bktKeys)
+		raw := b.Get([]byte(access))
+		if raw == nil {
+			return ErrKeyNotFound
+		}
+		var k APIKey
+		if err := json.Unmarshal(raw, &k); err != nil {
+			return err
+		}
+		k.Buckets = normalizeBuckets(buckets)
+		k.ReadOnly = readOnly
+		out, err := json.Marshal(k)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(k.AccessKey), out)
+	})
+}
+
+func normalizeBuckets(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[string]bool, len(in))
+	out := make([]string, 0, len(in))
+	for _, b := range in {
+		b = strings.TrimSpace(b)
+		if b == "" || seen[b] {
+			continue
+		}
+		seen[b] = true
+		out = append(out, b)
+	}
+	sort.Strings(out)
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func (s *Store) ListKeys() ([]APIKey, error) {

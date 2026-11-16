@@ -51,6 +51,24 @@ type APIKey struct {
 	Created   time.Time  `json:"created"`
 	Enabled   bool       `json:"enabled"`
 	LastUsed  *time.Time `json:"lastUsed,omitempty"`
+	// Buckets restricts the key to the listed buckets. An empty list means all
+	// buckets, which keeps keys created before scoped keys existed privileged.
+	Buckets  []string `json:"buckets,omitempty"`
+	ReadOnly bool     `json:"readOnly,omitempty"`
+}
+
+// AllowsBucket reports whether the key may access bucket. An empty scope grants
+// every bucket.
+func (k APIKey) AllowsBucket(bucket string) bool {
+	if len(k.Buckets) == 0 {
+		return true
+	}
+	for _, b := range k.Buckets {
+		if b == bucket {
+			return true
+		}
+	}
+	return false
 }
 
 type Settings struct {

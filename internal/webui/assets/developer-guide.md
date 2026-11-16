@@ -55,6 +55,13 @@ go run ./cmd/ossd --config ./oss.json --admin-addr 127.0.0.1:19101
 
 首次启动会自动创建一条默认访问密钥，访问密钥页面可以查看 Secret。
 
+密钥的权限范围：
+
+- `buckets` 为空（默认）表示可访问全部存储桶，与旧版本行为一致；
+- 指定 `buckets` 后，该密钥只能读写这些桶，`ListBuckets` 也只返回这些桶；
+- `readOnly` 为真时只允许 GET/HEAD，上传、删除、分段上传和修改桶都会被拒绝；
+- 受限密钥不能创建、删除或修改桶策略，只能操作桶内对象（`DeleteObjects` 除外）。
+
 环境变量：
 
 | 变量 | 作用 | 默认 |
@@ -135,8 +142,8 @@ data/
 | PATCH | `/api/buckets/{name}/policy` | `{ "policy": "private" \| "public-read" }` |
 | POST | `/api/buckets/{name}/presign` | 为对象生成预签名 URL |
 | GET | `/api/keys` | 密钥列表 |
-| POST | `/api/keys` | 新建密钥 `{ "label": "..." }` |
-| PATCH | `/api/keys/{access}` | 启用 / 停用 |
+| POST | `/api/keys` | 新建密钥 `{ "label": "...", "buckets": ["photos"], "readOnly": false }` |
+| PATCH | `/api/keys/{access}` | 启用 / 停用；调整范围 `{ "enabled": true, "buckets": [...], "readOnly": false }` |
 | DELETE | `/api/keys/{access}` | 删除密钥 |
 | GET | `/api/settings` | 读取设置 |
 | PATCH | `/api/settings` | 修改 CORS、上限制、公网地址 |

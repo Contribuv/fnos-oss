@@ -20,6 +20,22 @@ type authInfo struct {
 	SigningKey  []byte
 	Scope       string
 	AmzDate     string
+	Buckets     []string
+	ReadOnly    bool
+}
+
+// allowsBucket reports whether the authenticated key may touch bucket. An empty
+// scope grants every bucket.
+func (a *authInfo) allowsBucket(bucket string) bool {
+	if a == nil || len(a.Buckets) == 0 {
+		return true
+	}
+	for _, b := range a.Buckets {
+		if b == bucket {
+			return true
+		}
+	}
+	return false
 }
 
 const (
@@ -280,6 +296,8 @@ func (s *Server) authenticate(r *http.Request) (*authInfo, error) {
 		SigningKey:  sigKey,
 		Scope:       scope,
 		AmzDate:     amzDate,
+		Buckets:     access.Buckets,
+		ReadOnly:    access.ReadOnly,
 	}
 	switch payloadHash {
 	case "STREAMING-AWS4-HMAC-SHA256-PAYLOAD":

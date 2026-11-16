@@ -666,8 +666,15 @@
   // ------------------------------------------------------------- keys
   async function renderKeys() {
     page("");
-    const data = await api("/api/keys");
+    const [data, bucketData] = await Promise.all([api("/api/keys"), api("/api/buckets")]);
     state.keys = data.items || [];
+    state.buckets = bucketData.items || [];
+    const scopeCell = (k) => {
+      const names = k.buckets || [];
+      const readOnly = k.readOnly ? ` <span class="badge warn">只读</span>` : "";
+      if (!names.length) return `<span class="badge">全部桶</span>${readOnly}`;
+      return `<span class="badge">${names.length} 个桶</span>${readOnly}<div class="tiny dim mono" style="margin-top:3px">${names.map(esc).join("、")}</div>`;
+    };
     const rows = state.keys.map((k) => {
       const revealed = state.revealedSecrets.has(k.accessKey);
       return `<tr>
@@ -676,9 +683,13 @@
         <td><div class="row-inline"><code class="mono" style="min-width:120px">${revealed ? esc(k.secretKey) : "••••••••••••••••"}</code>
           <button class="icon-btn" data-act="reveal" data-access="${esc(k.accessKey)}" title="${revealed ? "隐藏" : "显示"} Secret">${icon(revealed ? "eyeoff" : "eye")}</button>
           <button class="icon-btn" data-act="copy" data-copy="${esc(k.secretKey)}" title="复制 Secret">${icon("copy")}</button></div></td>
+        <td class="hide-sm">${scopeCell(k)}</td>
         <td><button class="switch ${k.enabled ? "on" : ""}" data-act="toggle-key" data-access="${esc(k.accessKey)}" data-enabled="${k.enabled}" title="${k.enabled ? "停用" : "启用"}"></button></td>
         <td class="dim hide-sm nowrap">${k.lastUsed ? fmtAgo(k.lastUsed) : "从未使用"}</td>
-        <td><div class="actions"><button class="icon-btn" data-act="delete-key" data-access="${esc(k.accessKey)}" title="删除">${icon("trash")}</button></div></td>
+        <td><div class="actions">
+          <button class="icon-btn" data-act="edit-key-scope" data-access="${esc(k.accessKey)}" title="编辑范围">${icon("shield")}</button>
+          <button class="icon-btn" data-act="delete-key" data-access="${esc(k.accessKey)}" title="删除">${icon("trash")}</button>
+        </div></td>
       </tr>`;
     }).join("");
 
@@ -689,11 +700,11 @@
       </div>
       <div class="banner warn" style="margin-bottom:16px">
         <div class="b-icon">${icon("lock")}</div>
-        <div class="b-body"><b>Secret Key 等同密码，请妥善保管</b><p>可在本页查看和复制 Secret Key。建议为不同客户端分别创建密钥，便于审计与单独停用。</p></div>
+        <div class="b-body"><b>Secret Key 等同密码，请妥善保管</b><p>建议为不同客户端分别创建密钥。可把密钥限制到指定存储桶并设为只读，泄露时影响范围更小。</p></div>
       </div>
       <div class="card">
         ${state.keys.length ? `<div class="table-wrap"><table class="table">
-          <thead><tr><th>标签</th><th>Access Key</th><th>Secret Key</th><th>启用</th><th class="hide-sm">最近使用</th><th></th></tr></thead>
+          <thead><tr><th>标签</th><th>Access Key</th><th>Secret Key</th><th class="hide-sm">范围</th><th>启用</th><th class="hide-sm">最近使用</th><th></th></tr></thead>
           <tbody>${rows}</tbody></table></div>` : empty("还没有访问密钥", "创建一对 Access Key 与 Secret Key，然后配置到 S3 客户端。", "新建密钥", "new-key")}
       </div>
       <div class="callout" style="margin-top:16px">S3 Signature Version 必须为 <b>v4</b>。Region 可填写 <code class="mono">us-east-1</code>（或保持服务端默认值），并使用路径风格寻址。</div>`);
@@ -1172,6 +1183,7 @@ print(s3.list_buckets()["Buckets"])`)}`,
           <h4>访问密钥与安全</h4>
           <ul class="docs-list">
             <li>按客户端或用途分别创建密钥，泄露时只需停用对应的一条。</li>
+            <li>密钥可限制到指定存储桶，并可设为只读；不选桶表示全部桶，兼容旧密钥。</li>
             <li>Secret Key 等同密码，不要写入前端代码、公开仓库或截图。</li>
             <li>停用密钥会立即拒绝所有使用该密钥的签名请求和分享链接。</li>
             <li>管理端依赖飞牛网关注入的登录态，仅管理员可进入；S3 TCP 端口不经过飞牛登录校验。</li>
@@ -1396,15 +1408,34 @@ const url = await getSignedUrl(
       </form>`);
   }
 
-  function newKeyModal() {
+  async function newKeyModal(existing) {
+    let buckets = state.buckets || [];
+    if (!buckets.length) {
+      try { buckets = (await api("/api/buckets")).items || []; } catch { buckets = []; }
+    }
+    const isEdit = !!existing;
+    const scope = existing && Array.isArray(existing.buckets) ? existing.buckets : [];
+    const ro = existing ? !!existing.readOnly : false;
     modal(`
-      <form data-form="new-key">
-        <div class="modal-head"><div><h3>新建访问密钥</h3><p>建议按客户端或用途命名，便于日后停用。</p></div></div>
-        <div class="modal-body"><div class="field">
-          <label for="key-label">标签</label>
-          <input class="input" id="key-label" name="label" placeholder="例如 备份脚本 / 手机相册" autocomplete="off">
-        </div></div>
-        <div class="modal-foot"><button type="button" class="btn" data-modal-cancel>取消</button><button class="btn btn-primary" type="submit">创建并生成</button></div>
+      <form data-form="${isEdit ? "edit-key-scope" : "new-key"}"${isEdit ? ` data-access="${esc(existing.accessKey)}"` : ""}>
+        <div class="modal-head"><div><h3>${isEdit ? "编辑密钥范围" : "新建访问密钥"}</h3><p>${isEdit ? "调整该密钥可访问的存储桶与读写权限。" : "建议按客户端或用途命名，并按需限制存储桶。"}</p></div></div>
+        <div class="modal-body">
+          <div class="field">
+            <label for="key-label">标签</label>
+            <input class="input" id="key-label" name="label" value="${isEdit ? esc(existing.label || "") : ""}" placeholder="例如 备份脚本 / 手机相册" autocomplete="off" ${isEdit ? "readonly" : ""}>
+          </div>
+          <div class="field">
+            <label>授权存储桶</label>
+            <div class="check-list">
+              ${buckets.length ? buckets.map((b) => `<label class="check-row"><input type="checkbox" name="buckets" value="${esc(b.name)}" ${scope.includes(b.name) ? "checked" : ""}><span>${esc(b.name)}</span></label>`).join("") : `<div class="help">还没有存储桶，创建后可以再回来设置范围。</div>`}
+            </div>
+            <div class="help">不勾选任何桶表示全部桶（保持旧行为）；勾选后该密钥只能访问选中的桶。</div>
+          </div>
+          <div class="field">
+            <label class="check-row"><input type="checkbox" name="readOnly" ${ro ? "checked" : ""}><span>只读：禁止上传、删除对象和修改桶</span></label>
+          </div>
+        </div>
+        <div class="modal-foot"><button type="button" class="btn" data-modal-cancel>取消</button><button class="btn btn-primary" type="submit">${isEdit ? "保存" : "创建并生成"}</button></div>
       </form>`);
   }
 
@@ -1603,7 +1634,12 @@ const url = await getSignedUrl(
           break;
         }
         case "pick-folder": await pickBucketFolder(); break;
-        case "new-key": newKeyModal(); break;
+        case "new-key": await newKeyModal(); break;
+        case "edit-key-scope": {
+          const key = state.keys.find((k) => k.accessKey === el.dataset.access);
+          if (key) await newKeyModal(key);
+          break;
+        }
         case "open-bucket": location.hash = `#/buckets/${el.dataset.bucket}`; break;
         case "crumb": {
           const prefix = decodeURIComponent(el.dataset.prefix || "");
@@ -1740,10 +1776,20 @@ const url = await getSignedUrl(
         toast(data.bucket && data.bucket.rootPath ? `已指向 ${data.bucket.rootPath}` : "已改回应用数据卷", "ok");
         await route();
       } else if (kind === "new-key") {
-        const data = await api("/api/keys", { method: "POST", body: { label: String(fd.get("label") || "") } });
+        const buckets = fd.getAll("buckets").map(String);
+        const readOnly = fd.get("readOnly") === "on";
+        const data = await api("/api/keys", { method: "POST", body: { label: String(fd.get("label") || ""), buckets, readOnly } });
         closeModal();
         state.revealedSecrets.add(data.key.accessKey);
         toast("密钥已创建，请复制并保存", "ok");
+        await route();
+      } else if (kind === "edit-key-scope") {
+        const access = form.dataset.access;
+        const buckets = fd.getAll("buckets").map(String);
+        const readOnly = fd.get("readOnly") === "on";
+        await api(`/api/keys/${enc(access)}`, { method: "PATCH", body: { buckets, readOnly } });
+        closeModal();
+        toast("密钥范围已更新", "ok");
         await route();
       } else if (kind === "settings") {
         await saveSettings();

@@ -339,3 +339,37 @@ func TestKeysAndSettings(t *testing.T) {
 		t.Errorf("saved settings = %+v, %v", again, err)
 	}
 }
+
+func TestKeyScopeRoundTrip(t *testing.T) {
+	s := newTestStore(t)
+	k, err := s.CreateKeyScoped("scoped", []string{"b", "a", "a", " "}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(k.Buckets) != 2 || k.Buckets[0] != "a" || k.Buckets[1] != "b" {
+		t.Fatalf("normalized scope = %v", k.Buckets)
+	}
+	if err := s.SetKeyScope(k.AccessKey, []string{"photos"}, true); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetKey(k.AccessKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.ReadOnly || len(got.Buckets) != 1 || got.Buckets[0] != "photos" {
+		t.Fatalf("scope after update = %+v", got)
+	}
+	if err := s.SetKeyScope(k.AccessKey, nil, false); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.GetKey(k.AccessKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Buckets) != 0 || got.ReadOnly {
+		t.Fatalf("scope after clear = %+v", got)
+	}
+	if !got.AllowsBucket("any-bucket") {
+		t.Fatal("cleared scope should allow every bucket")
+	}
+}

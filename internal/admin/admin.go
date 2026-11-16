@@ -844,10 +844,17 @@ func (a *Admin) handleListKeys(w http.ResponseWriter, r *http.Request) {
 
 func (a *Admin) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Label string `json:"label"`
+		Label    string   `json:"label"`
+		Buckets  []string `json:"buckets"`
+		ReadOnly bool     `json:"readOnly"`
 	}
 	_ = json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body)
-	k, err := a.Store.CreateKey(strings.TrimSpace(body.Label))
+	buckets, err := a.validateKeyBuckets(body.Buckets)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return
+	}
+	k, err := a.Store.CreateKeyScoped(strings.TrimSpace(body.Label), buckets, body.ReadOnly)
 	if err != nil {
 		writeErr(w, err)
 		return
@@ -855,15 +862,59 @@ func (a *Admin) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"key": k})
 }
 
+// validateKeyBuckets drops duplicates and rejects names that no longer exist, so
+// a key can never be scoped to a bucket that is not there.
+func (a *Admin) validateKeyBuckets(in []string) ([]string, error) {
+	out := make([]string, 0, len(in))
+	seen := make(map[string]bool, len(in))
+	for _, b := range in {
+		b = strings.TrimSpace(b)
+		if b == "" || seen[b] {
+			continue
+		}
+		if _, err := a.Store.GetBucket(b); err != nil {
+			return nil, fmt.Errorf("存储桶不存在：%s", b)
+		}
+		seen[b] = true
+		out = append(out, b)
+	}
+	return out, nil
+}
+
 func (a *Admin) handlePatchKey(w http.ResponseWriter, r *http.Request, access string) {
 	var body struct {
-		Enabled *bool `json:"enabled"`
+		Enabled  *bool     `json:"enabled"`
+		Buckets  *[]string `json:"buckets"`
+		ReadOnly *bool     `json:"readOnly"`
 	}
 	if !decodeJSON(w, r, &body) {
 		return
 	}
 	if body.Enabled != nil {
 		if err := a.Store.SetKeyEnabled(access, *body.Enabled); err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]any{"error": "访问密钥不存在。"})
+			return
+		}
+	}
+	if body.Buckets != nil || body.ReadOnly != nil {
+		k, err := a.Store.GetKey(access)
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]any{"error": "访问密钥不存在。"})
+			return
+		}
+		buckets := k.Buckets
+		readOnly := k.ReadOnly
+		if body.Buckets != nil {
+			buckets, err = a.validateKeyBuckets(*body.Buckets)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
+				return
+			}
+		}
+		if body.ReadOnly != nil {
+			readOnly = *body.ReadOnly
+		}
+		if err := a.Store.SetKeyScope(access, buckets, readOnly); err != nil {
 			writeJSON(w, http.StatusNotFound, map[string]any{"error": "访问密钥不存在。"})
 			return
 		}
@@ -984,13 +1035,18 @@ func (a *Admin) presign(w http.ResponseWriter, r *http.Request, bucket, key, met
 	keys, _ := a.Store.ListKeys()
 	var chosen *store.APIKey
 	for i := range keys {
-		if keys[i].Enabled {
-			chosen = &keys[i]
-			break
+		k := &keys[i]
+		if !k.Enabled || !k.AllowsBucket(bucket) {
+			continue
 		}
+		if k.ReadOnly && method != http.MethodGet {
+			continue
+		}
+		chosen = k
+		break
 	}
 	if chosen == nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "请先创建至少一个启用状态的访问密钥。"})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "没有同时满足该存储桶与请求方法的启用密钥，请调整密钥范围。"})
 		return
 	}
 	base := endpoint
