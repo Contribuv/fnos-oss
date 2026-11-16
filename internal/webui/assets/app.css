@@ -493,7 +493,14 @@ body.nav-lock { overflow: hidden; }
 @media (max-width: 900px) {
   :root { --sidebar-w: 0px; }
   .app { display: block; }
-  .topbar .nav-toggle { display: inline-grid; margin-left: -6px; }
+  .topbar .nav-toggle {
+    display: inline-grid; width: 36px; height: 36px; margin-left: -8px;
+    transition: opacity .15s ease, background .15s ease;
+  }
+  .topbar .nav-toggle svg { width: 18px; height: 18px; }
+  /* The scrim already covers the top bar; hiding the toggle avoids a dim,
+     unclickable button lingering behind the open drawer. */
+  #app.nav-open .topbar .nav-toggle { opacity: 0; pointer-events: none; }
 
   /* Off-canvas drawer instead of a squeezed horizontal rail. */
   .sidebar {
@@ -531,7 +538,14 @@ body.nav-lock { overflow: hidden; }
   .app.nav-open .nav-scrim { opacity: 1; pointer-events: auto; }
 
   .main { margin-left: 0; }
-  .topbar { padding: 0 16px; gap: 8px; }
+  .topbar {
+    padding: 0 16px; gap: 8px;
+    /* Blurred sticky bars flicker around tap feedback on mobile GPUs and cost
+       battery while scrolling, so the drawer layout uses a solid surface. */
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
   .topbar-left { flex: 1 1 auto; overflow: hidden; }
   .top-actions { flex: none; }
   .crumb { overflow: hidden; white-space: nowrap; }

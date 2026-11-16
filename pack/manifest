@@ -1,5 +1,5 @@
 appname=fnos-oss
-version=1.0.12
+version=1.0.13
 display_name=轻量对象存储
 desc=轻量、私有部署的 S3 兼容对象存储。支持存储桶、访问密钥、分段上传、分享链接与公共读策略，管理端通过飞牛统一网关访问。
 platform=x86
@@ -16,4 +16,4 @@ ctl_stop=true
 service_port=9100
 checkport=false
 disable_authorization_path=false
-changelog=移动端访问密钥改为卡片布局，修复长密钥与范围文字竖排、溢出；优化移动端弹窗间距与勾选列表对齐。
+changelog=优化移动端汉堡按钮的触控尺寸与按下反馈；抽屉打开时隐藏失效的按钮；移动端顶栏改用纯色背景，避免点击与滚动时模糊层闪烁。
