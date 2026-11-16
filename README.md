@@ -51,8 +51,8 @@ FNPACK=/usr/local/bin/fnpack ./build.sh
 
 输出位于 `dist/`：
 
-- `fnos-oss_1.0.1_x86.fpk` — 供 x86_64 设备安装
-- `fnos-oss_1.0.1_arm.fpk` — 供 ARM64 设备安装
+- `fnos-oss_1.0.5_x86.fpk` — 供 x86_64 设备安装
+- `fnos-oss_1.0.5_arm.fpk` — 供 ARM64 设备安装
 
 应用包含 Linux 原生二进制，飞牛要求 `manifest` 的 `platform` 与实际架构一致（只接受 `x86` / `arm` / `all`，其中 `all` 仅适用于不含架构相关二进制的包），因此同时支持两种设备的方式是**同一版本打两个包**：`pack/manifest` 保留模板值 `platform=x86`，构建脚本在每个架构的暂存目录里把它改写为对应架构，源文件本身不被修改。应用上架或发布时请同时上传两份包，或让 ARM 用户下载 `_arm.fpk`。
 
