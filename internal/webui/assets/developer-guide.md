@@ -392,32 +392,57 @@ curl -sI "https://s3.example.com:7755/demo-bucket/uploads/a.jpg?X-Amz-..." | hea
 | `RequestTimeTooSkewed` | 客户端与服务端时间偏差过大 |
 | `NoSuchKey` | 对象不存在 |
 
-## 14. 客户端案例：Typecho 博客
+## 14. 客户端案例：Typecho 博客插件
 
-开源示例：<https://github.com/Contribuv/Typecho-fnos-oss>
+开源插件：<https://github.com/Contribuv/Typecho-fnos-oss>
 
-它把 Typecho 的图片与附件直接写入 fnos-oss，可以作为 PHP 应用、博客或图床对接的参考实现。
+把 Typecho 的附件直接写入 fnos-oss，支持直链、预签名、代理三种访问方式。
 
-### 14.1 准备
+- 适用 Typecho 1.3.x，PHP 7.4+，需要 `curl` 扩展
+- 纯 PHP 实现 SigV4，不依赖 Composer / AWS SDK
+- 支持大于 64 MB 的分段上传（单段 16 MB）、删除、替换、失败回退本地
 
-1. 新建独立桶 `blog`。
-2. 新建访问密钥，标签填 `typecho`，绑定 `blog` 桶；需要上传图片时保持读写。
-3. 文章图片要能被任何人直接打开时，把桶设为 `public-read`；否则保持 `private`，由 Typecho 生成预签名 URL。
+### 14.1 安装
 
-### 14.2 S3 参数
+1. 从插件仓库 Releases 下载 `FnosOss-1.0.0.zip`。
+2. 解压后把 `FnosOss` 目录放入 Typecho 的 `usr/plugins/`。
+3. 后台「控制台 → 插件」启用，填写配置，点「测试连接」自检。
 
-| 参数 | 值 |
+### 14.2 fnos-oss 侧准备
+
+| 项 | 值 |
 | --- | --- |
-| Endpoint | `https://file.example.com:7755`（含端口，浏览器可访问） |
-| Region | `us-east-1` |
-| 寻址方式 | path-style（必须） |
-| Bucket | `blog` |
-| 对象键 | 建议带日期前缀，例如 `uploads/2026/11/xxx.jpg` |
+| 存储桶 | `typecho`（可自定义） |
+| 访问密钥 | 绑定该桶；如果开启自动建桶，需要全部桶 |
+| 直链模式 | 桶设为 `public-read` |
+| 预签名 / 代理 | 桶保持 `private` |
 
-### 14.3 对接要点
+### 14.3 配置项
 
-- Secret Key 只保存在 Typecho 服务端，主题与前端 JS 不得参与签名。
-- 公共读桶适合文章配图；私有桶请使用预签名 URL，并控制有效期。
-- 大文件建议走后端流式上传或分段上传，注意反向代理的请求体上限与超时。
-- 更换域名或端口后，已发出的裸链接会失效；预签名链接需要重新生成。
-- 示例代码与配置字段以仓库 README 为准。
+| 配置 | 说明 |
+| --- | --- |
+| Endpoint | `http://内网IP:9100`，不要带 `/app/fnos-oss` |
+| 公网 Endpoint | `https://file.example.com:7755`，留空则使用 Endpoint |
+| Region | `us-east-1`，与服务端一致 |
+| 对象前缀 | 默认 `typecho`，键形如 `typecho/2026/11/xxxx.png` |
+| 访问方式 | `direct` / `presign` / `proxy` |
+| 预签名有效期 | 60–604800 秒，默认 86400 |
+| 失败回退本地 | 建议开启 |
+| 自动创建存储桶 | 开启时密钥不能限制到单个桶 |
+
+### 14.4 访问方式对比
+
+| 方式 | 桶策略 | 链接有效期 | 流量 |
+| --- | --- | --- | --- |
+| 直链 | `public-read` | 永久 | 直连 S3 |
+| 预签名 | `private` | 60–604800 秒 | 直连 S3 |
+| 代理 | `private` | 稳定（带签名） | 经过 PHP |
+
+### 14.5 注意事项
+
+- 切换访问方式只影响新附件，正文里的旧链接不会自动改写。
+- 停用插件后 `oss://` 附件无法解析；卸载插件不会删除桶内对象。
+- 附件记录保存为 `oss://桶名/对象键`，由插件转换成可访问 URL。
+- Secret Key 保存在 Typecho options 表，数据库备份会包含它。
+- 反向代理必须保留原始 Host（含端口），否则预签名链接会签名不匹配。
+- 完整说明与常见问题以插件仓库 README 为准。

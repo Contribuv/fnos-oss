@@ -25,7 +25,7 @@
 
 ## 客户端案例
 
-- [Typecho-fnos-oss](https://github.com/Contribuv/Typecho-fnos-oss)：Typecho 博客对接本项目的开源示例，含 S3 配置与图片上传实现。
+- [Typecho-fnos-oss](https://github.com/Contribuv/Typecho-fnos-oss)：Typecho 附件上传插件，支持直链 / 预签名 / 代理、分段上传与失败回退本地。
 
 ## 界面与访问方式
 
@@ -197,13 +197,17 @@ build.ps1 / build.sh 交叉编译 + fnpack 打包
 
 ## 更新日志
 
-### v1.0.15 · 2026-11-16
+### v1.0.16 · 2026-11-16
 
-- 开发文档新增「客户端案例」：Typecho 博客对接示例
-- README 增加客户端案例入口
+- 开发文档「客户端案例」按 Typecho 插件实际实现更新：安装、配置项、三种访问方式与注意事项
 
 <details>
 <summary>历史版本</summary>
+
+#### v1.0.15 · 2026-11-16
+
+- 开发文档新增「客户端案例」：Typecho 博客对接示例
+- README 增加客户端案例入口
 
 #### v1.0.14 · 2026-11-16
 

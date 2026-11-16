@@ -1284,32 +1284,42 @@ const url = await getSignedUrl(
         id: "client",
         title: "客户端案例",
         body: `
-          <h4>客户端案例：Typecho 博客</h4>
-          <p>开源示例仓库：<a href="https://github.com/Contribuv/Typecho-fnos-oss" target="_blank" rel="noopener">Contribuv/Typecho-fnos-oss</a>。它把 Typecho 的图片与附件直接写入 fnos-oss，可以作为 PHP 应用、博客或图床对接的参考实现。</p>
-          <h5>整体链路</h5>
-          <p>浏览器上传 → Typecho（PHP）→ S3 API（path-style）→ 对象存储。文章图片由 Typecho 输出 URL，按桶策略直接访问，或由后端签发预签名链接。</p>
-          <h5>准备</h5>
+          <h4>客户端案例：Typecho 博客插件</h4>
+          <p>开源插件 <a href="https://github.com/Contribuv/Typecho-fnos-oss" target="_blank" rel="noopener">Contribuv/Typecho-fnos-oss</a> 把 Typecho 的附件直接写入 fnos-oss，支持直链、预签名、代理三种访问方式，可作为 PHP 应用或图床对接的完整参考。</p>
+          <ul class="docs-list">
+            <li>适用 Typecho 1.3.x，PHP 7.4+，需要 <code class="mono">curl</code> 扩展。</li>
+            <li>纯 PHP 实现 SigV4，不依赖 Composer 或 AWS SDK。</li>
+            <li>支持删除、替换、大于 64 MB 的分段上传，上传失败可回退本地。</li>
+          </ul>
+          <h5>安装插件</h5>
           <ol class="docs-steps">
-            <li>在“存储桶”新建独立桶，例如 <code class="mono">blog</code>。</li>
-            <li>在“访问密钥”新建密钥，标签填 <code class="mono">typecho</code>，绑定 <code class="mono">blog</code> 桶；需要上传图片时保持读写。</li>
-            <li>如果文章图片要能被任何人直接打开，把 <code class="mono">blog</code> 设为公共读；否则保持私有，由 Typecho 生成预签名链接。</li>
+            <li>从插件仓库 Releases 下载 <code class="mono">FnosOss-1.0.0.zip</code>。</li>
+            <li>解压后把 <code class="mono">FnosOss</code> 目录放到 Typecho 的 <code class="mono">usr/plugins/</code>。</li>
+            <li>后台「控制台 → 插件」启用，进入设置填写 S3 参数，最后点「测试连接」自检。</li>
           </ol>
-          <h5>S3 参数</h5>
+          <h5>fnos-oss 侧准备</h5>
+          <ol class="docs-steps">
+            <li>新建存储桶，例如 <code class="mono">typecho</code>。</li>
+            <li>新建访问密钥并绑定该桶；如果插件开启「自动创建存储桶」，密钥需要保持全部桶。</li>
+            <li>直链模式把桶设为公共读；预签名或代理模式保持私有。</li>
+          </ol>
+          <h5>配置要点</h5>
           <ul class="docs-list">
-            <li><b>Endpoint：</b>浏览器能访问的完整地址，例如 <code class="mono">https://file.example.com:7755</code>，不要用内网 IP。</li>
-            <li><b>Region：</b><code class="mono">us-east-1</code>，与服务端设置一致。</li>
-            <li><b>寻址方式：</b>必须为 path-style。</li>
-            <li><b>Bucket：</b><code class="mono">blog</code>；对象键建议带日期前缀，例如 <code class="mono">uploads/2026/11/xxx.jpg</code>。</li>
-            <li><b>密钥：</b>只使用绑定 <code class="mono">blog</code> 的专用密钥，Secret Key 只放在 Typecho 服务端。</li>
+            <li><b>Endpoint：</b>服务器访问地址，例如 <code class="mono">http://192.168.1.10:9100</code>，不要带 <code class="mono">/app/fnos-oss</code>。</li>
+            <li><b>公网 Endpoint：</b>浏览器访问地址，例如 <code class="mono">https://file.example.com:7755</code>；留空则用 Endpoint。</li>
+            <li><b>Region：</b><code class="mono">us-east-1</code>，与 fnos-oss 设置一致。</li>
+            <li><b>对象前缀：</b>默认 <code class="mono">typecho</code>，对象键形如 <code class="mono">typecho/2026/11/xxxx.png</code>。</li>
           </ul>
-          <h5>对接要点</h5>
+          <h5>三种访问方式</h5>
           <ul class="docs-list">
-            <li>不要在主题或前端 JS 里计算签名，避免 Secret 泄露。</li>
-            <li>公共读桶适合文章配图；私有桶请使用预签名 URL，并控制有效期。</li>
-            <li>大文件建议走后端流式上传或分段上传，注意反向代理的请求体上限与超时。</li>
-            <li>更换域名或端口后，已发出的裸链接会失效；使用预签名链接时需重新生成。</li>
+            <li><b>直链：</b>桶设为公共读，URL 永久有效，适合图片站，不消耗 PHP 流量。</li>
+            <li><b>预签名：</b>私有桶，链接在有效期内可用；写进文章正文的链接过期后失效，不适合长期引用。</li>
+            <li><b>代理：</b>由 <code class="mono">proxy.php</code> 转发，链接稳定、支持 Range，适合长期使用私有桶，但附件流量会经过 PHP。</li>
           </ul>
-          <p class="docs-note">示例代码、配置字段与最新说明以仓库 README 为准；如果仓库尚未发布代码，可以先按上面的参数完成通用对接。</p>`,
+          <div class="callout warn" style="margin:10px 0">
+            <b>注意：</b>切换访问方式后只有新附件使用新 URL，正文里的旧链接不会自动改写；停用插件后 <code class="mono">oss://</code> 附件将无法解析，卸载插件也不会删除桶内对象。
+          </div>
+          <p class="docs-note">完整配置项、常见问题与版本说明见插件仓库 README。</p>`,
       },
       {
         id: "data",
