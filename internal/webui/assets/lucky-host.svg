@@ -47,8 +47,7 @@
   <rect class="field" x="572" y="302" width="496" height="56" rx="8"/>
   <text class="hint" x="590" y="326">Header 值</text>
   <text class="value" x="590" y="348">$http_host</text>
-  <path d="M1104 316 l14 14 M1118 316 l-14 14" stroke="#e0565f" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M1100 322 h-8 v16 h8" fill="none" stroke="#e0565f" stroke-width="2"/>
+  <path d="M1090 322 l16 16 M1106 322 l-16 16" stroke="#8d8d97" stroke-width="2.2" stroke-linecap="round"/>
 
   <line class="divider" x1="40" y1="404" x2="1160" y2="404"/>
 
